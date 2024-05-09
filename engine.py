@@ -12,6 +12,7 @@ SQ_SIZE = BOARD_HEIGHT // DIMENSION
 bigOffset = SCREEN_HEIGHT // 40
 smallOffset = SCREEN_HEIGHT // 100
 squareClicked = [None] * 2
+validMoves = []
 
 
 def drawTransparentRect(screen, color, stW, stH, sideX, sideY, alpha=64) -> None:
@@ -128,13 +129,16 @@ class GameState():
                     
         if self.clicked:
             drawTransparentRect(screen, sqHighlightColor, (squareClicked[1]) * SQ_SIZE + self.stW, (squareClicked[0]) * SQ_SIZE + self.stH, SQ_SIZE, SQ_SIZE, 64)
-            for move in card:
-                if self.clickArea.collidepoint(((squareClicked[1] + move[1]) * SQ_SIZE + self.stW, (squareClicked[0] + move[0]) * SQ_SIZE + self.stH)):
-                    drawTransparentRect(screen, sqHighlightColor, (squareClicked[1] + move[1]) * SQ_SIZE + self.stW, (squareClicked[0] + move[0]) * SQ_SIZE + self.stH, SQ_SIZE, SQ_SIZE, 64)
-
+            for i in range(len(card)):
+                if self.clickArea.collidepoint(((squareClicked[1] + card[i][1]) * SQ_SIZE + self.stW, (squareClicked[0] + card[i][0]) * SQ_SIZE + self.stH)):
+                    sqToMoveCoords = [(squareClicked[1] + card[i][1]) * SQ_SIZE + self.stW, (squareClicked[0] + card[i][0]) * SQ_SIZE + self.stH]
+                    drawTransparentRect(screen, sqHighlightColor, sqToMoveCoords[0], sqToMoveCoords[1], SQ_SIZE, SQ_SIZE, 64)
+                    if pygame.Rect(sqToMoveCoords[0], sqToMoveCoords[1], SQ_SIZE, SQ_SIZE).collidepoint(mousePosition) and pygame.mouse.get_pressed()[0]:
+                        self.movePawn(squareClicked, [squareClicked[1] + card[i][1], squareClicked[0] + card[i][0]])
 
     def movePawn(self, startSquare, endSquare) -> None:
-        ...
+        print('st: ', startSquare)
+        print('en: ', endSquare)
 
 
 
