@@ -55,7 +55,7 @@ def engine() -> None:
     players = [None] * 2
     pNames = ['p1', 'p2']
     for i in range(len(players)):
-        players[i] = Player(1-i, cardsInGame, pNames[i])
+        players[i] = Player(i-1, cardsInGame, pNames[i])
     players[i].playerTurn()
     loadImages()
     running = True
@@ -69,7 +69,7 @@ def engine() -> None:
 
         drawBackground(screen)
         game.drawBoard(screen, bigOffset)
-        game.highlightSquares(screen, [[-1, -1], [-1, 1]], 'p2')
+        game.highlightSquares(screen, [[-1, -1], [-1, 1], [1, -1], [1, 1]], 'p2')
         drawPawns(screen, game.board, (SCREEN_WIDTH-BOARD_HEIGHT)/2, (SCREEN_HEIGHT-BOARD_HEIGHT)/2)
 
         for player in players:

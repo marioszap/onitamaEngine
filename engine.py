@@ -89,8 +89,10 @@ class GameState():
         self.board = [["p1S" for i in range(n)]] \
                     + [["--" for i in range(n)] for i in range(n-2)] \
                     + [["p2S" for i in range(n)]]
-        self.board[0][n//2] = "p1M"
-        self.board[-1][n//2] = "p2M"
+        self.p1Throne = [0, n//2]
+        self.p2Throne = [-1, n//2]
+        self.board[self.p1Throne[0]][self.p1Throne[1]] = "p1M"
+        self.board[self.p2Throne[0]][self.p2Throne[1]] = "p2M"
         self.clicked = False
         self.clickArea = pygame.Rect(stW, stH, BOARD_HEIGHT, BOARD_HEIGHT)
         self.stW = stW
@@ -107,8 +109,8 @@ class GameState():
             pygame.draw.line(screen, lineColor, (self.stW, i*SQ_SIZE+self.stH), (BOARD_HEIGHT+self.stW, i*SQ_SIZE+self.stH), SQ_SIZE//20) #Horizontal
         drawTransparentRect(screen, "navy", (n//2)*SQ_SIZE+self.stW, 0*SQ_SIZE+self.stH, SQ_SIZE, SQ_SIZE)
         drawTransparentRect(screen, "red", (n//2)*SQ_SIZE+self.stW, (n-1)*SQ_SIZE+self.stH, SQ_SIZE, SQ_SIZE)
-        
-        
+
+
     def highlightSquares(self, screen, card, player) -> None:
 
         mousePosition = pygame.mouse.get_pos()
@@ -134,12 +136,18 @@ class GameState():
                     sqToMoveCoords = [(squareClicked[1] + card[i][1]) * SQ_SIZE + self.stW, (squareClicked[0] + card[i][0]) * SQ_SIZE + self.stH]
                     drawTransparentRect(screen, sqHighlightColor, sqToMoveCoords[0], sqToMoveCoords[1], SQ_SIZE, SQ_SIZE, 64)
                     if pygame.Rect(sqToMoveCoords[0], sqToMoveCoords[1], SQ_SIZE, SQ_SIZE).collidepoint(mousePosition) and pygame.mouse.get_pressed()[0]:
-                        self.movePawn(squareClicked, [squareClicked[1] + card[i][1], squareClicked[0] + card[i][0]])
+                        self.movePawn(squareClicked, [squareClicked[0] + card[i][0], squareClicked[1] + card[i][1]])
+                        self.clicked = False
 
     def movePawn(self, startSquare, endSquare) -> None:
-        print('st: ', startSquare)
-        print('en: ', endSquare)
-
+        pawnName = self.board[startSquare[0]][startSquare[1]]
+        self.board[startSquare[0]][startSquare[1]] = '--'
+        try:
+            if self.board[endSquare[0]][endSquare[1]][1] != pawnName[1] and self.board[endSquare[0]][endSquare[1]][2] == 'M':
+                print('Game over')
+        except:
+            pass
+        self.board[endSquare[0]][endSquare[1]] = pawnName
 
 
 class Player():
@@ -171,7 +179,7 @@ class Player():
             cards[i] = Card(cardsToChooseFrom[i], cardsDict[cardsToChooseFrom[i]], [coorsX[i], coorY])
             cardsDict.pop(cardsToChooseFrom[i])
         return cards
-    
+
 
     def playerTurn(self):
         self.plays = True
