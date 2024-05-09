@@ -12,7 +12,6 @@ SQ_SIZE = BOARD_HEIGHT // DIMENSION
 bigOffset = SCREEN_HEIGHT // 40
 smallOffset = SCREEN_HEIGHT // 100
 squareClicked = [None] * 2
-validMoves = []
 
 
 def drawTransparentRect(screen, color, stW, stH, sideX, sideY, alpha=64) -> None:
