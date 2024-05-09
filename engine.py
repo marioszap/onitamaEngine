@@ -1,5 +1,4 @@
 import pygame, random
-#from pyGame import CARD_LENGTH, CARD_HEIGHT, bigOffset, smallOffset, SCREEN_WIDTH, SCREEN_HEIGHT, BOARD_HEIGHT
 
 n = 5
 SCREEN_HEIGHT = 1000 #pygame.display.get_surface().get_height()
