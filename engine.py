@@ -29,6 +29,7 @@ class Card():
         self.stPoint = stPoint
         self.clicked = False
         self.active = False #Is this card in hand of the player whose turn it is?
+        self.isUsed = False
 
     def mirrorCoord(self, coord) -> None:
         for i in range(len(self.moves)):
@@ -99,7 +100,6 @@ class GameState():
 
 
     def drawBoard(self, screen, offset) -> None:
-        
         pygame.draw.rect(screen, "grey16", pygame.Rect(self.stW-offset, self.stH-offset, BOARD_HEIGHT+2*offset, BOARD_HEIGHT+2*offset))
         pygame.draw.rect(screen, "burlywood", self.clickArea)
         lineColor = 'burlywood3'
@@ -111,7 +111,6 @@ class GameState():
 
 
     def highlightSquares(self, screen, card, player) -> None:
-
         mousePosition = pygame.mouse.get_pos()
         squareHovered = [None] * 2
         sqHighlightColor = 'yellow'
@@ -188,3 +187,9 @@ class Player():
         self.plays = True
         for card in self.cards:
             card.active = True
+
+
+    def giveCard(self, card: Card):
+        temp = card.cardL
+        card.cardL = card.cardH
+        card.cardH = temp
