@@ -4,7 +4,7 @@ import json
 from engine import *
 import random
 
-MAX_FPS = 15
+MAX_FPS = 8
 IMAGES = {}
 movesToPlay =[]
 

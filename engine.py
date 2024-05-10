@@ -127,16 +127,20 @@ class GameState():
                     self.clicked = True
                     global squareClicked
                     squareClicked = squareHovered
-                    
         if self.clicked:
             drawTransparentRect(screen, sqHighlightColor, (squareClicked[1]) * SQ_SIZE + self.stW, (squareClicked[0]) * SQ_SIZE + self.stH, SQ_SIZE, SQ_SIZE, 64)
             for i in range(len(card)):
-                if self.clickArea.collidepoint(((squareClicked[1] + card[i][1]) * SQ_SIZE + self.stW, (squareClicked[0] + card[i][0]) * SQ_SIZE + self.stH)):
+                try:
+                    sqToMove = [(squareClicked[1] + card[i][1]), (squareClicked[0] + card[i][0])]
                     sqToMoveCoords = [(squareClicked[1] + card[i][1]) * SQ_SIZE + self.stW, (squareClicked[0] + card[i][0]) * SQ_SIZE + self.stH]
-                    drawTransparentRect(screen, sqHighlightColor, sqToMoveCoords[0], sqToMoveCoords[1], SQ_SIZE, SQ_SIZE, 64)
-                    if pygame.Rect(sqToMoveCoords[0], sqToMoveCoords[1], SQ_SIZE, SQ_SIZE).collidepoint(mousePosition) and pygame.mouse.get_pressed()[0]:
-                        self.movePawn(squareClicked, [squareClicked[0] + card[i][0], squareClicked[1] + card[i][1]])
-                        self.clicked = False
+                    if self.clickArea.collidepoint((sqToMoveCoords[0], sqToMoveCoords[1])) \
+                    and self.board[squareClicked[0]][squareClicked[1]][:2] != self.board[sqToMove[1]][sqToMove[0]][:2]:
+                        drawTransparentRect(screen, sqHighlightColor, sqToMoveCoords[0], sqToMoveCoords[1], SQ_SIZE, SQ_SIZE, 64)
+                        if pygame.Rect(sqToMoveCoords[0], sqToMoveCoords[1], SQ_SIZE, SQ_SIZE).collidepoint(mousePosition) and pygame.mouse.get_pressed()[0]:
+                            self.movePawn(squareClicked, [squareClicked[0] + card[i][0], squareClicked[1] + card[i][1]])
+                            self.clicked = False
+                except:
+                    ...
 
     def movePawn(self, startSquare, endSquare) -> None:
         pawnName = self.board[startSquare[0]][startSquare[1]]
