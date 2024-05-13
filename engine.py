@@ -1,7 +1,9 @@
-import pygame, random
+import random, os
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
+import pygame
 
 n = 5
-SCREEN_HEIGHT = 1000 #pygame.display.get_surface().get_height()
+SCREEN_HEIGHT = 1000 #pygame.display.set_mode().get_size()[1] - 25
 SCREEN_WIDTH = SCREEN_HEIGHT
 CARD_SQUARE = SCREEN_HEIGHT // 30
 CARD_HEIGHT = CARD_SQUARE * 5
@@ -130,13 +132,13 @@ class GameState():
             drawTransparentRect(screen, sqHighlightColor, (squareClicked[1]) * SQ_SIZE + self.stW, (squareClicked[0]) * SQ_SIZE + self.stH, SQ_SIZE, SQ_SIZE, 64)
             for i in range(len(card)):
                 try:
-                    sqToMove = [(squareClicked[1] + card[i][1]), (squareClicked[0] + card[i][0])]
-                    sqToMoveCoords = [(squareClicked[1] + card[i][1]) * SQ_SIZE + self.stW, (squareClicked[0] + card[i][0]) * SQ_SIZE + self.stH]
+                    sqToMove = [(squareClicked[1] + card[i][0]), (squareClicked[0] + card[i][1])]
+                    sqToMoveCoords = [(squareClicked[1] + card[i][0]) * SQ_SIZE + self.stW, (squareClicked[0] + card[i][1]) * SQ_SIZE + self.stH]
                     if self.clickArea.collidepoint((sqToMoveCoords[0], sqToMoveCoords[1])) \
                     and self.board[squareClicked[0]][squareClicked[1]][:2] != self.board[sqToMove[1]][sqToMove[0]][:2]:
                         drawTransparentRect(screen, sqHighlightColor, sqToMoveCoords[0], sqToMoveCoords[1], SQ_SIZE, SQ_SIZE, 64)
                         if pygame.Rect(sqToMoveCoords[0], sqToMoveCoords[1], SQ_SIZE, SQ_SIZE).collidepoint(mousePosition) and pygame.mouse.get_pressed()[0]:
-                            self.movePawn(squareClicked, [squareClicked[0] + card[i][0], squareClicked[1] + card[i][1]])
+                            self.movePawn(squareClicked, [squareClicked[0] + card[i][1], squareClicked[1] + card[i][0]])
                             self.clicked = False
                 except:
                     ...
@@ -165,13 +167,13 @@ class Player():
         self.cards = self.pickCards(cardsInGame, cardX, cardY)
         self.plays = False
         self.name = name
-
         if not userView:
             for card in self.cards:
                 card.mirrorCoord(1)#"""
         else:
             for card in self.cards:
                 card.mirrorCoord(0)#"""
+        
 
 
     def pickCards(self, cardsDict: dict, coorsX: list[int], coorY: int) -> list[Card]:

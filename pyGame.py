@@ -1,5 +1,6 @@
-import pygame
 import os
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
+import pygame
 import json
 from engine import *
 import random
@@ -28,7 +29,6 @@ def loadImages() -> None:
         if (not file == "whiteCircle.png") and ('Circle' in file):
             IMAGES[pieces[j]] = pygame.transform.scale(pygame.image.load("images/"+file), (SQ_SIZE, SQ_SIZE))
             j+=1
-    print(IMAGES)
 
 
 def drawBackground(screen) -> None:
@@ -69,8 +69,6 @@ def engine() -> None:
 
         drawBackground(screen)
         game.drawBoard(screen, bigOffset)
-        game.highlightSquares(screen, [[-1, -1], [-1, 1], [1, -1], [1, 1]], 'p2')
-        drawPawns(screen, game.board, (SCREEN_WIDTH-BOARD_HEIGHT)/2, (SCREEN_HEIGHT-BOARD_HEIGHT)/2)
 
         for player in players:
             for i in range(len(player.cards)):
@@ -78,6 +76,11 @@ def engine() -> None:
                 if not x is None:
                     global movesToPlay
                     movesToPlay = x
+        
+        if not movesToPlay is None:
+            #print(movesToPlay)
+            game.highlightSquares(screen, movesToPlay, 'p2')
+        drawPawns(screen, game.board, (SCREEN_WIDTH-BOARD_HEIGHT)/2, (SCREEN_HEIGHT-BOARD_HEIGHT)/2)
         
         clock.tick(MAX_FPS)
         pygame.display.flip()
