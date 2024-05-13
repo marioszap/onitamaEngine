@@ -49,18 +49,14 @@ def engine() -> None:
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     clock = pygame.time.Clock()
     screen.fill(pygame.Color("white"))
-    game = GameState(n)
 
     cardsInGame = loadCards()
-    players = [None] * 2
-    pNames = ['p1', 'p2']
-    for i in range(len(players)):
-        players[i] = Player(i-1, cardsInGame, pNames[i])
-    players[i].playerTurn()
+    game = GameState(n, cardsInGame)
     loadImages()
     running = True
-    print('p1: ', players[0].cards[0].name, players[0].cards[0].moves, players[0].cards[1].name, players[0].cards[1].moves)
-    print('p2: ', players[1].cards[0].name, players[1].cards[0].moves, players[1].cards[1].name, players[1].cards[1].moves)
+
+
+    game.players[1].playerTurn()
 
     while running:
         for e in pygame.event.get():
@@ -70,7 +66,8 @@ def engine() -> None:
         drawBackground(screen)
         game.drawBoard(screen, bigOffset)
 
-        for player in players:
+        for player in game.players:
+            #player = players[1]
             for i in range(len(player.cards)):
                 x = player.cards[i].draw(screen, player.cards[1-i])
                 if not x is None:
@@ -79,7 +76,7 @@ def engine() -> None:
         
         if not movesToPlay is None:
             #print(movesToPlay)
-            game.highlightSquares(screen, movesToPlay, 'p2')
+            game.highlightSquares(screen, movesToPlay, player.name)
         drawPawns(screen, game.board, (SCREEN_WIDTH-BOARD_HEIGHT)/2, (SCREEN_HEIGHT-BOARD_HEIGHT)/2)
         
         clock.tick(MAX_FPS)
