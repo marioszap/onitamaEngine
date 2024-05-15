@@ -2,6 +2,7 @@ import random, os
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 import pygame
 import math
+import sys
 
 n = 5
 SCREEN_HEIGHT = 1000 #pygame.display.set_mode().get_size()[1] - 25
@@ -15,6 +16,7 @@ SQ_SIZE = BOARD_HEIGHT // DIMENSION
 bigOffset = SCREEN_HEIGHT // 40
 smallOffset = SCREEN_HEIGHT // 100
 squareClicked = [None] * 2
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 
 def drawTransparentRect(screen, color, stW, stH, sideX, sideY, alpha=64) -> None:
@@ -60,8 +62,6 @@ class Card():
         """
         mousePosition = pygame.mouse.get_pos()
         clickArea = pygame.Rect(self.stPoint[0], self.stPoint[1], self.cardL, self.cardH)
-
-        #pygame.draw.rect(screen, "grey16", pygame.Rect(self.stPoint[0]-offset, self.stPoint[1]-offset, self.cardL+2*offset, self.cardH+2*offset))
 
         if self.active:
             cardHighlightColor = 'yellow'
@@ -137,15 +137,14 @@ class Player():
         for card in self.cards:
             card.active = True
 
-
-    def giveCard(self, card: Card):
-        temp = card.cardL
-        card.cardL = card.cardH
-        card.cardH = temp
-
     def endTurn(self):
         for Card in self.cards:
             Card.active = False
+
+    def sendCard(self, card, cardOut):
+        idx = self.cards.index(card)
+        self.cards[idx] = cardOut
+        return card
 
 
 class GameState():
@@ -166,11 +165,34 @@ class GameState():
         self.stW = stW
         self.stH = stH
         self.players = [None] * 2
+        #self.cardOut = 
         for i in range(len(self.players)):
             self.players[i] = Player(1-i, cardsInGame, f'p{i+1}')
+        self.firstPlayer = self.players[random.randint(0,1)]
+        
+        for el in cardsInGame:
+            if self.firstPlayer.userView:
+                self.cardOut = Card(el, cardsInGame[el], [300, 500])
+            else:
+                self.cardOut = Card(el, cardsInGame[el], [700, 500])
+
+        temp = self.cardOut.cardL
+        self.cardOut.cardL = self.cardOut.cardH
+        self.cardOut.cardH = temp
+            #self.choosePlayerToPlayFirst(el, cardsInGame[el])
 
 
-    def drawBoard(self, screen, offset) -> None:
+    def drawFirstCardOut(self, cardName, cardMoves) -> None:
+        if self.firstPlayer.userView:
+            self.cardOut.draw(screen, None)
+
+        else:
+            self.cardOut.draw(screen, None)
+            
+
+
+
+    def drawBoard(self, screen, offset=bigOffset, smallOffset=smallOffset) -> None:
         pygame.draw.rect(screen, "grey16", pygame.Rect(self.stW-offset, self.stH-offset, BOARD_HEIGHT+2*offset, BOARD_HEIGHT+2*offset))
         pygame.draw.rect(screen, "burlywood", self.clickArea)
         lineColor = 'burlywood3'
@@ -179,8 +201,12 @@ class GameState():
             pygame.draw.line(screen, lineColor, (self.stW, i*SQ_SIZE+self.stH), (BOARD_HEIGHT+self.stW, i*SQ_SIZE+self.stH), SQ_SIZE//20) #Horizontal
         drawTransparentRect(screen, "navy", (n//2)*SQ_SIZE+self.stW, 0*SQ_SIZE+self.stH, SQ_SIZE, SQ_SIZE)
         drawTransparentRect(screen, "red", (n//2)*SQ_SIZE+self.stW, (n-1)*SQ_SIZE+self.stH, SQ_SIZE, SQ_SIZE)
-        #pygame.draw.rect(screen, "grey16", pygame.Rect(self.stPoint[0]-offset, self.stPoint[1]-offset, self.cardL+2*offset, self.cardH+2*offset))
-
+        for player in self.players:
+            for card in player.cards:
+                pygame.draw.rect(screen, "grey16", pygame.Rect(card.stPoint[0]-smallOffset, card.stPoint[1]-smallOffset, card.cardL+2*smallOffset, card.cardH+2*smallOffset))
+        pygame.draw.rect(screen, "grey16", pygame.Rect((self.stW-card.cardH+2*smallOffset)/2, self.stW + SQ_SIZE/2, card.cardH+2*smallOffset, card.cardL+2*smallOffset))
+        pygame.draw.rect(screen, "grey16", pygame.Rect((self.stW-card.cardH+2*smallOffset)/2 + BOARD_WIDTH + 2*offset + card.cardH, self.stW + BOARD_HEIGHT - SQ_SIZE/2 - 2*smallOffset
+                                                        - card.cardL, card.cardH+2*smallOffset, card.cardL+2*smallOffset))
 
     def highlightSquares(self, screen, card, player) -> None:
         mousePosition = pygame.mouse.get_pos()

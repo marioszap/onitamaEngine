@@ -5,7 +5,7 @@ import json
 from engine import *
 import random
 
-MAX_FPS = 8
+MAX_FPS = 10
 IMAGES = {}
 movesToPlay =[]
 
@@ -46,7 +46,6 @@ def drawPawns(screen, board, stW, stH) -> None:
 def engine() -> None:
     pygame.init()
     pygame.display.set_caption('Onitama engine')
-    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     clock = pygame.time.Clock()
     screen.fill(pygame.Color("white"))
 
@@ -64,7 +63,8 @@ def engine() -> None:
                 running = False
 
         drawBackground(screen)
-        game.drawBoard(screen, bigOffset)
+        game.drawBoard(screen)
+        game.drawFirstCardOut(game.cardOut.name, game.cardOut.moves)
 
         for player in game.players:
             #player = players[1]
