@@ -5,6 +5,7 @@ import math
 import sys
 
 n = 5
+COLORS = ['red', 'blue']
 SCREEN_HEIGHT = 1000 #pygame.display.set_mode().get_size()[1] - 25
 SCREEN_WIDTH = SCREEN_HEIGHT
 CARD_SQUARE = SCREEN_HEIGHT // 30
@@ -52,9 +53,18 @@ class Card():
         self.active = False #Is this card in hand of the player whose turn it is?
         self.isUsed = False
 
+
     def mirrorCoord(self, coord) -> None:
         for i in range(len(self.moves)):
             self.moves[i][coord] = -1 * self.moves[i][coord]
+
+
+    def exchangeCoordinates(self) -> None:
+        for i in range(len(self.moves)):
+            temp = self.moves[i][0]
+            self.moves[i][0] = self.moves[i][1]
+            self.moves[i][1] = temp
+
 
     def draw(self, screen, otherCardInHand, sq=CARD_SQUARE, offset=smallOffset) -> None:
         """
@@ -102,11 +112,12 @@ class Card():
         #drawRotatedRectangle(screen, 150, 600, CARD_HEIGHT, CARD_LENGTH, lineColor, rotation=20)
 
 class Player():
-    def __init__(self, userView, cardsInGame, name) -> None:
+    def __init__(self, userView, cardsInGame, name, color) -> None:
         self.cards = [None] * 2
         cardX = [None] * 2
         self.userView = userView
-        cardX[0] = SCREEN_WIDTH // 4 - CARD_LENGTH //2
+        self.color = color
+        cardX[0] = SCREEN_WIDTH // 4 - CARD_LENGTH // 2
         cardX[1] = cardX[0] + SCREEN_WIDTH // 2
         cardY = (SCREEN_HEIGHT-BOARD_HEIGHT)/4 - CARD_HEIGHT // 2 - bigOffset//2 - smallOffset//2
         if not userView:
@@ -120,7 +131,6 @@ class Player():
         else:
             for card in self.cards:
                 card.mirrorCoord(0)#"""
-        
 
 
     def pickCards(self, cardsDict: dict, coorsX: list[int], coorY: int) -> list[Card]:
@@ -148,7 +158,7 @@ class Player():
 
 
 class GameState():
-    def __init__(self, n: int, cardsInGame, stW = (SCREEN_WIDTH-BOARD_HEIGHT)/2, stH = (SCREEN_HEIGHT-BOARD_HEIGHT)/2) -> None:
+    def __init__(self, n: int, cardsInGame, stW = (SCREEN_WIDTH-BOARD_HEIGHT)/2, stH = (SCREEN_HEIGHT-BOARD_HEIGHT)/2, colors=COLORS) -> None:
         """
         :n:is an odd integer larger than one
         :return:None
@@ -167,14 +177,19 @@ class GameState():
         self.players = [None] * 2
         #self.cardOut = 
         for i in range(len(self.players)):
-            self.players[i] = Player(1-i, cardsInGame, f'p{i+1}')
+            self.players[i] = Player(1-i, cardsInGame, f'p{i+1}', colors[i])
         self.firstPlayer = self.players[random.randint(0,1)]
         
         for el in cardsInGame:
             if self.firstPlayer.userView:
-                self.cardOut = Card(el, cardsInGame[el], [300, 500])
+                self.cardOut = Card(el, cardsInGame[el], [(self.stW-CARD_HEIGHT+4*smallOffset)/2, self.stW + SQ_SIZE/2 + smallOffset])            
             else:
-                self.cardOut = Card(el, cardsInGame[el], [700, 500])
+                self.cardOut = Card(el, cardsInGame[el], [(self.stW-CARD_HEIGHT+4*smallOffset)/2 + BOARD_WIDTH + 2*bigOffset + CARD_HEIGHT,
+                                                        self.stW + BOARD_HEIGHT - SQ_SIZE/2 - 2*smallOffset- CARD_LENGTH + smallOffset])
+                self.cardOut.mirrorCoord(0)
+                self.cardOut.mirrorCoord(1)
+
+        self.cardOut.exchangeCoordinates()
 
         temp = self.cardOut.cardL
         self.cardOut.cardL = self.cardOut.cardH
@@ -182,14 +197,11 @@ class GameState():
             #self.choosePlayerToPlayFirst(el, cardsInGame[el])
 
 
-    def drawFirstCardOut(self, cardName, cardMoves) -> None:
+    def drawFirstCardOut(self) -> None:
         if self.firstPlayer.userView:
             self.cardOut.draw(screen, None)
-
         else:
             self.cardOut.draw(screen, None)
-            
-
 
 
     def drawBoard(self, screen, offset=bigOffset, smallOffset=smallOffset) -> None:
@@ -204,9 +216,10 @@ class GameState():
         for player in self.players:
             for card in player.cards:
                 pygame.draw.rect(screen, "grey16", pygame.Rect(card.stPoint[0]-smallOffset, card.stPoint[1]-smallOffset, card.cardL+2*smallOffset, card.cardH+2*smallOffset))
-        pygame.draw.rect(screen, "grey16", pygame.Rect((self.stW-card.cardH+2*smallOffset)/2, self.stW + SQ_SIZE/2, card.cardH+2*smallOffset, card.cardL+2*smallOffset))
+        pygame.draw.rect(screen, "grey16", pygame.Rect((self.stW-card.cardH+2*smallOffset)/2, self.stW + SQ_SIZE/2, card.cardH+2*smallOffset, card.cardL+2*smallOffset)) #left
         pygame.draw.rect(screen, "grey16", pygame.Rect((self.stW-card.cardH+2*smallOffset)/2 + BOARD_WIDTH + 2*offset + card.cardH, self.stW + BOARD_HEIGHT - SQ_SIZE/2 - 2*smallOffset
                                                         - card.cardL, card.cardH+2*smallOffset, card.cardL+2*smallOffset))
+
 
     def highlightSquares(self, screen, card, player) -> None:
         mousePosition = pygame.mouse.get_pos()

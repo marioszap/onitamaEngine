@@ -56,7 +56,7 @@ def engine() -> None:
 
 
     game.players[1].playerTurn()
-
+    print(game.cardOut.name)
     while running:
         for e in pygame.event.get():
             if e.type == pygame.QUIT:
@@ -64,7 +64,7 @@ def engine() -> None:
 
         drawBackground(screen)
         game.drawBoard(screen)
-        game.drawFirstCardOut(game.cardOut.name, game.cardOut.moves)
+        game.drawFirstCardOut()
 
         for player in game.players:
             #player = players[1]
