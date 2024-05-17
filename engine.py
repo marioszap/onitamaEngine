@@ -57,11 +57,17 @@ class Card():
             self.moves[i][coord] = -1 * self.moves[i][coord]
 
 
-    def exchangeCoordinates(self) -> None:
+    def swapCoordinates(self) -> None:
         for i in range(len(self.moves)):
             temp = self.moves[i][0]
             self.moves[i][0] = self.moves[i][1]
             self.moves[i][1] = temp
+
+
+    def swapHeightWithWidth(self) -> None:
+        temp = self.cardL
+        self.cardL = self.cardH
+        self.cardH = temp
 
 
     def draw(self, screen, otherCardInHand, sq=CARD_SQUARE, offset=smallOffset) -> None:
@@ -143,6 +149,7 @@ class Player():
     def sendCard(self, card, cardOut):
         idx = self.cards.index(card)
         self.cards[idx] = cardOut
+        cardOut = card
         return card
 
 
@@ -187,12 +194,9 @@ class GameState():
                 self.cardOut.mirrorCoord(0)
                 self.cardOut.mirrorCoord(1)
 
-        self.cardOut.exchangeCoordinates()
+        self.cardOut.swapCoordinates()
 
-        temp = self.cardOut.cardL
-        self.cardOut.cardL = self.cardOut.cardH
-        self.cardOut.cardH = temp
-            #self.choosePlayerToPlayFirst(el, cardsInGame[el])
+        self.cardOut.swapHeightWithWidth()
 
 
     def drawFirstCardOut(self) -> None:

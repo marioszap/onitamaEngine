@@ -7,7 +7,7 @@ import random
 
 MAX_FPS = 10
 IMAGES = {}
-cardToPlay =[]
+cardToPlay = None
 
 
 def loadCards() -> dict[str]:
@@ -45,23 +45,23 @@ def drawPawns(screen, board, stW, stH) -> None:
 
 def engine() -> None:
     pygame.init()
-    pygame.display.set_caption('Onitama engine')
-    clock = pygame.time.Clock()
-    screen.fill(pygame.Color("white"))
 
     cardsInGame = loadCards()
     game = GameState(n, cardsInGame)
+    activePlayerIndex = game.firstPlayerIdx
+    game.playerTurn(activePlayerIndex)
+    clock = pygame.time.Clock()
+    screen.fill(pygame.Color("white"))
     loadImages()
     running = True
     turnFinished = False
 
-    activePlayerIndex = game.firstPlayerIdx
-    game.playerTurn(activePlayerIndex)
     print(game.cardOut.name)
     while running:
         for e in pygame.event.get():
             if e.type == pygame.QUIT:
                 running = False
+        pygame.display.set_caption("Onitama engine: "+game.players[activePlayerIndex].name+ "'s turn")
 
         turnFinished = False
         drawBackground(screen)
@@ -86,10 +86,10 @@ def engine() -> None:
             activePlayerIndex = (activePlayerIndex + 1) % 2
             game.playerTurn(activePlayerIndex)
             player.unclickCards()
-            player.sendCardUsed(cardToPlay)
+            #player.sendCard(cardToPlay, game.cardOut)
+            #player.receiveCard()
             cardToPlay = None
 
-            #player.receiveCard()
         clock.tick(MAX_FPS)
         pygame.display.flip()
 
