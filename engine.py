@@ -51,8 +51,6 @@ class Card():
         self.stPoint = stPoint
         self.clicked = False
         self.active = False #Is this card in hand of the player whose turn it is?
-        self.isUsed = False
-
 
     def mirrorCoord(self, coord) -> None:
         for i in range(len(self.moves)):
@@ -81,7 +79,7 @@ class Card():
                 if pygame.mouse.get_pressed()[0]:
                     self.clicked = True
                     otherCardInHand.clicked = False
-                    return self.moves
+                    return self
             
             if self.clicked:
                 drawTransparentRect(screen, cardHighlightColor, self.stPoint[0]-offset/2, self.stPoint[1]-offset/2, self.cardL+offset, self.cardH+offset, 250)
@@ -142,23 +140,22 @@ class Player():
         return cards
 
 
-    def playerTurn(self):
-        self.plays = True
-        for card in self.cards:
-            card.active = True
-
-    def endTurn(self):
-        for Card in self.cards:
-            Card.active = False
-
     def sendCard(self, card, cardOut):
         idx = self.cards.index(card)
         self.cards[idx] = cardOut
         return card
 
 
+    def unclickCards(self):
+        for card in self.cards:
+            card.clicked = False
+
+    def sendCardUsed(self, card):
+        print(card.name)
+
+
 class GameState():
-    def __init__(self, n: int, cardsInGame, stW = (SCREEN_WIDTH-BOARD_HEIGHT)/2, stH = (SCREEN_HEIGHT-BOARD_HEIGHT)/2, colors=COLORS) -> None:
+    def __init__(self, n: int, cardsInGame, colors=COLORS, stW = (SCREEN_WIDTH-BOARD_HEIGHT)/2, stH = (SCREEN_HEIGHT-BOARD_HEIGHT)/2) -> None:
         """
         :n:is an odd integer larger than one
         :return:None
@@ -178,7 +175,8 @@ class GameState():
         #self.cardOut = 
         for i in range(len(self.players)):
             self.players[i] = Player(1-i, cardsInGame, f'p{i+1}', colors[i])
-        self.firstPlayer = self.players[random.randint(0,1)]
+        self.firstPlayerIdx = random.randint(0,1)
+        self.firstPlayer = self.players[self.firstPlayerIdx]
         
         for el in cardsInGame:
             if self.firstPlayer.userView:
@@ -221,7 +219,7 @@ class GameState():
                                                         - card.cardL, card.cardH+2*smallOffset, card.cardL+2*smallOffset))
 
 
-    def highlightSquares(self, screen, card, player) -> None:
+    def highlightSquares(self, screen, card, playerName: str) -> bool:
         mousePosition = pygame.mouse.get_pos()
         squareHovered = [None] * 2
         sqHighlightColor = 'yellow'
@@ -229,7 +227,7 @@ class GameState():
         squareHovered[0] = int((mousePosition[1] - self.stH) / SQ_SIZE)
 
         if self.clickArea.collidepoint(mousePosition):
-            if (not self.board[squareHovered[0]][squareHovered[1]] == '--') and self.board[squareHovered[0]][squareHovered[1]][:2] == player:
+            if (self.board[squareHovered[0]][squareHovered[1]] != '--') and (self.board[squareHovered[0]][squareHovered[1]][:2] == playerName):
                 if pygame.mouse.get_pressed()[0]:
                     if self.clicked:
                         self.clicked = False
@@ -239,16 +237,17 @@ class GameState():
                     squareClicked = squareHovered
         if self.clicked:
             drawTransparentRect(screen, sqHighlightColor, (squareClicked[1]) * SQ_SIZE + self.stW, (squareClicked[0]) * SQ_SIZE + self.stH, SQ_SIZE, SQ_SIZE, 64)
-            for i in range(len(card)):
+            for i in range(len(card.moves)):
                 try:
-                    sqToMove = [(squareClicked[1] + card[i][0]), (squareClicked[0] + card[i][1])]
-                    sqToMoveCoords = [(squareClicked[1] + card[i][0]) * SQ_SIZE + self.stW, (squareClicked[0] + card[i][1]) * SQ_SIZE + self.stH]
+                    sqToMove = [(squareClicked[1] + card.moves[i][0]), (squareClicked[0] + card.moves[i][1])]
+                    sqToMoveCoords = [(squareClicked[1] + card.moves[i][0]) * SQ_SIZE + self.stW, (squareClicked[0] + card.moves[i][1]) * SQ_SIZE + self.stH]
                     if self.clickArea.collidepoint((sqToMoveCoords[0], sqToMoveCoords[1])) \
                     and self.board[squareClicked[0]][squareClicked[1]][:2] != self.board[sqToMove[1]][sqToMove[0]][:2]:
                         drawTransparentRect(screen, sqHighlightColor, sqToMoveCoords[0], sqToMoveCoords[1], SQ_SIZE, SQ_SIZE, 64)
                         if pygame.Rect(sqToMoveCoords[0], sqToMoveCoords[1], SQ_SIZE, SQ_SIZE).collidepoint(mousePosition) and pygame.mouse.get_pressed()[0]:
-                            self.movePawn(squareClicked, [squareClicked[0] + card[i][1], squareClicked[1] + card[i][0]])
+                            self.movePawn(squareClicked, [squareClicked[0] + card.moves[i][1], squareClicked[1] + card.moves[i][0]])
                             self.clicked = False
+                            return True
                 except:
                     ...
 
@@ -262,3 +261,12 @@ class GameState():
         except:
             pass
         self.board[endSquare[0]][endSquare[1]] = pawnName
+
+
+    def playerTurn(self, playerToPlayIndex: int) -> None:
+        self.players[playerToPlayIndex].plays = True
+        for card in self.players[playerToPlayIndex].cards:
+            card.active = True
+        self.players[(playerToPlayIndex + 1) % 2].plays = False
+        for card in self.players[(playerToPlayIndex + 1) % 2].cards:
+            card.active = False
