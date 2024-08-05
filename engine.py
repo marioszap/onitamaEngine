@@ -146,19 +146,34 @@ class Player():
         return cards
 
 
-    def sendCard(self, card, cardOut):
+    def sendCard(self, card, cardOut: Card, p1OutCoord=0, p2OutCoord=0):
+        #stW = (SCREEN_WIDTH-BOARD_HEIGHT)/2, stH = (SCREEN_HEIGHT-BOARD_HEIGHT)/2)
+        coords = [p1OutCoord, p2OutCoord]
+        if cardOut.stPoint[0] >= BOARD_HEIGHT:
+            cardOutStPoint = [((SCREEN_WIDTH-BOARD_HEIGHT)/2-CARD_HEIGHT+4*smallOffset)/2, (SCREEN_WIDTH-BOARD_HEIGHT)/2 + SQ_SIZE/2 + smallOffset]
+        else:
+            cardOutStPoint = [((SCREEN_WIDTH-BOARD_HEIGHT)/2-CARD_HEIGHT+4*smallOffset)/2 + BOARD_WIDTH + 2*bigOffset + CARD_HEIGHT,
+                                SCREEN_WIDTH/2 + BOARD_HEIGHT/2 - SQ_SIZE/2 - smallOffset - CARD_LENGTH]
         idx = self.cards.index(card)
+        playedCardCoords = self.cards[idx].stPoint
+
+        self.cards[idx].swapHeightWithWidth()
+        self.cards[idx].swapCoordinates()
+        self.cards[idx].mirrorCoord(0)
+        self.cards[idx].stPoint = cardOutStPoint
+
+        cardOut.swapHeightWithWidth()
+        cardOut.swapCoordinates()
+        cardOut.mirrorCoord(0)
+        cardOut.stPoint = playedCardCoords
+        cardToSend = self.cards[idx]
         self.cards[idx] = cardOut
-        cardOut = card
-        return card
+        return cardToSend
 
 
     def unclickCards(self):
         for card in self.cards:
             card.clicked = False
-
-    def sendCardUsed(self, card):
-        print(card.name)
 
 
 class GameState():
@@ -171,7 +186,7 @@ class GameState():
                     + [["--" for i in range(n)] for i in range(n-2)] \
                     + [["p2S" for i in range(n)]]
         self.p1Throne = [0, n//2]
-        self.p2Throne = [-1, n//2]
+        self.p2Throne = [n-1, n//2]
         self.board[self.p1Throne[0]][self.p1Throne[1]] = "p1M"
         self.board[self.p2Throne[0]][self.p2Throne[1]] = "p2M"
         self.clicked = False
@@ -215,12 +230,12 @@ class GameState():
             pygame.draw.line(screen, lineColor, (self.stW, i*SQ_SIZE+self.stH), (BOARD_HEIGHT+self.stW, i*SQ_SIZE+self.stH), SQ_SIZE//20) #Horizontal
         drawTransparentRect(screen, "navy", (n//2)*SQ_SIZE+self.stW, 0*SQ_SIZE+self.stH, SQ_SIZE, SQ_SIZE)
         drawTransparentRect(screen, "red", (n//2)*SQ_SIZE+self.stW, (n-1)*SQ_SIZE+self.stH, SQ_SIZE, SQ_SIZE)
-        for player in self.players:
+        """for player in self.players:
             for card in player.cards:
                 pygame.draw.rect(screen, "grey16", pygame.Rect(card.stPoint[0]-smallOffset, card.stPoint[1]-smallOffset, card.cardL+2*smallOffset, card.cardH+2*smallOffset))
         pygame.draw.rect(screen, "grey16", pygame.Rect((self.stW-card.cardH+2*smallOffset)/2, self.stW + SQ_SIZE/2, card.cardH+2*smallOffset, card.cardL+2*smallOffset)) #left
         pygame.draw.rect(screen, "grey16", pygame.Rect((self.stW-card.cardH+2*smallOffset)/2 + BOARD_WIDTH + 2*offset + card.cardH, self.stW + BOARD_HEIGHT - SQ_SIZE/2 - 2*smallOffset
-                                                        - card.cardL, card.cardH+2*smallOffset, card.cardL+2*smallOffset))
+                                                        - card.cardL, card.cardH+2*smallOffset, card.cardL+2*smallOffset))"""
 
 
     def highlightSquares(self, screen, card, playerName: str) -> bool:
@@ -259,11 +274,18 @@ class GameState():
     def movePawn(self, startSquare, endSquare) -> None:
         pawnName = self.board[startSquare[0]][startSquare[1]]
         self.board[startSquare[0]][startSquare[1]] = '--'
+
         try:
             if self.board[endSquare[0]][endSquare[1]][1] != pawnName[1] and self.board[endSquare[0]][endSquare[1]][2] == 'M':
-                print('Game over')
+                print(f'Game over: {pawnName[:2]} wins!')
         except:
-            pass
+            ...
+        if pawnName == 'p1M' and [endSquare[0], endSquare[1]] == self.p2Throne:
+            print(f'Game over: {pawnName[:2]} wins!')
+
+        if pawnName == 'p2M' and [endSquare[0], endSquare[1]] == self.p1Throne:
+            print(f'Game over: {pawnName[:2]} wins!')
+
         self.board[endSquare[0]][endSquare[1]] = pawnName
 
 

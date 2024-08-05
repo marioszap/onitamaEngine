@@ -45,7 +45,6 @@ def drawPawns(screen, board, stW, stH) -> None:
 
 def engine() -> None:
     pygame.init()
-
     cardsInGame = loadCards()
     game = GameState(n, cardsInGame)
     activePlayerIndex = game.firstPlayerIdx
@@ -86,7 +85,7 @@ def engine() -> None:
             activePlayerIndex = (activePlayerIndex + 1) % 2
             game.playerTurn(activePlayerIndex)
             player.unclickCards()
-            #player.sendCard(cardToPlay, game.cardOut)
+            game.cardOut = player.sendCard(cardToPlay, game.cardOut)
             #player.receiveCard()
             cardToPlay = None
 
