@@ -256,19 +256,16 @@ class GameState():
     def movePawn(self, startSquare, endSquare) -> None:
         pawnName = self.board[startSquare[0]][startSquare[1]]
         self.board[startSquare[0]][startSquare[1]] = '--'
-
         try:
             if self.board[endSquare[0]][endSquare[1]][1] != pawnName[1] and self.board[endSquare[0]][endSquare[1]][2] == 'M':
                 self.endMessage = self.gameFinished(pawnName[:2])
         except:
             ...
+
         if pawnName == 'p1M' and [endSquare[0], endSquare[1]] == self.p2Throne:
             self.endMessage = self.gameFinished(pawnName[:2])
-
-
         if pawnName == 'p2M' and [endSquare[0], endSquare[1]] == self.p1Throne:
             self.endMessage = self.gameFinished(pawnName[:2])
-
         self.board[endSquare[0]][endSquare[1]] = pawnName
 
 
@@ -287,7 +284,7 @@ class GameState():
     
 
     def drawEndScreen(self, message: str) -> None:
-        drawTransparentRect(screen, 'grey', 0, 0, screen.get_width(), screen.get_height(), alpha=128)
+        drawTransparentRect(screen, 'grey12', 0, 0, screen.get_width(), screen.get_height(), alpha=200)
         font = pygame.font.Font('freesansbold.ttf', 64)
         text = font.render(message, True, 'firebrick2')
         textRect = text.get_rect()
