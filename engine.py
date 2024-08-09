@@ -182,7 +182,7 @@ class GameState():
         self.firstPlayerIdx = random.randint(0,1)
         self.firstPlayer = self.players[self.firstPlayerIdx]
         self.endMessage = None
-        
+        self.activePlayerIndex = None
         for el in cardsInGame:
             if self.firstPlayer.userView:
                 self.cardOut = Card(el, cardsInGame[el], [(self.stW-CARD_HEIGHT+4*smallOffset)/2, self.stW + SQ_SIZE/2 + smallOffset])            
@@ -282,14 +282,37 @@ class GameState():
 
 
     def gameFinished(self, message: str) -> str:
-        endMessage = f'Game over! {message} wins. Replay?'
+        endMessage = f'Game over: {message} wins!'
         return endMessage
     
 
     def drawEndScreen(self, message: str) -> None:
         drawTransparentRect(screen, 'grey', 0, 0, screen.get_width(), screen.get_height(), alpha=128)
         font = pygame.font.Font('freesansbold.ttf', 64)
-        text = font.render(message, True, 'red')
+        text = font.render(message, True, 'firebrick2')
         textRect = text.get_rect()
         textRect.center = (screen.get_width() // 2, screen.get_height() // 2)
         screen.blit(text, textRect)
+
+        font = pygame.font.Font('freesansbold.ttf', 20)
+        text = font.render('New game? (move mouse or press any key to continue)', True, 'firebrick2')
+        textRect = text.get_rect()
+        textRect.center = (screen.get_width() // 2, screen.get_height() // 2 + 45)
+        screen.blit(text, textRect)
+
+
+    def getPlayerPawnCoords(self, playerName):
+        coords = []
+        for line in range(len(self.board)):
+            for row in range(len(self.board[line])):
+                if self.board[line][row][:2] == playerName:
+                    coords.append([line, row])
+        return coords
+    
+    def getPlayerValidMoves(self, playerName):
+        for player in self.players:
+            if player.name == playerName:
+                for card in player.cards:
+                    print(card.name)
+                    print(card.moves)
+        

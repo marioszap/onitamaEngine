@@ -5,10 +5,16 @@ import json
 from engine import *
 import random
 
-MAX_FPS = 10
+MAX_FPS = 15
 IMAGES = {}
 cardToPlay = None
 
+def initGame() -> GameState:
+    cardsInGame = loadCards()
+    game = GameState(n, cardsInGame)
+    game.activePlayerIndex = game.firstPlayerIdx
+    game.playerTurn(game.activePlayerIndex)
+    return game
 
 def loadCards() -> dict[str]:
     allCards = open('cardsMoves.json')
@@ -45,10 +51,7 @@ def drawPawns(screen, board, stW, stH) -> None:
 
 def engine() -> None:
     pygame.init()
-    cardsInGame = loadCards()
-    game = GameState(n, cardsInGame)
-    activePlayerIndex = game.firstPlayerIdx
-    game.playerTurn(activePlayerIndex)
+    game = initGame()
     clock = pygame.time.Clock()
     screen.fill(pygame.Color("white"))
     loadImages()
@@ -59,16 +62,20 @@ def engine() -> None:
         for e in pygame.event.get():
             if e.type == pygame.QUIT:
                 running = False
-        pygame.display.set_caption("Onitama engine: "+game.players[activePlayerIndex].name+ "'s turn")
+        pygame.display.set_caption("Onitama engine: "+game.players[game.activePlayerIndex].name+ "'s turn")
 
         turnFinished = False
         drawBackground(screen)
         game.drawBoard(screen)
 
-        player = game.players[activePlayerIndex]
-        inactivePlayer = game.players[(activePlayerIndex + 1) % 2]
+        player = game.players[game.activePlayerIndex]
+        inactivePlayer = game.players[(game.activePlayerIndex + 1) % 2]
         if game.endMessage:
             game.drawEndScreen(game.endMessage)
+            for e in pygame.event.get():
+                if pygame.key.get_pressed():
+                    game = initGame() #new game starts immediately
+
         else:
             game.drawFirstCardOut()
             for i in range(len(player.cards)):
@@ -82,10 +89,11 @@ def engine() -> None:
                 turnFinished = game.highlightSquares(screen, cardToPlay, player.name)
             
             drawPawns(screen, game.board, (SCREEN_WIDTH-BOARD_HEIGHT)/2, (SCREEN_HEIGHT-BOARD_HEIGHT)/2)
+            #game.getPlayerValidMoves('p2')
             
             if turnFinished:
-                activePlayerIndex = (activePlayerIndex + 1) % 2
-                game.playerTurn(activePlayerIndex)
+                game.activePlayerIndex = (game.activePlayerIndex + 1) % 2
+                game.playerTurn(game.activePlayerIndex)
                 player.unclickCards()
                 game.cardOut = player.sendCard(cardToPlay, game.cardOut)
                 cardToPlay = None
