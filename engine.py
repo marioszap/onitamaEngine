@@ -27,21 +27,6 @@ def drawTransparentRect(screen, color, stW, stH, sideX, sideY, alpha=64) -> None
     screen.blit(s, (stW, stH))
 
 
-def drawRotatedRectangle(screen, x, y, width, height, color, rotation=0) -> None:
-    points = []
-    radius = math.sqrt((height / 2)**2 + (width / 2)**2)
-
-    angle = math.atan2(height / 2, width / 2)
-    angles = [angle, -angle + math.pi, angle + math.pi, -angle]
-    rot_radians = (math.pi / 180) * rotation
-
-    for angle in angles:
-        y_offset = -1 * radius * math.sin(angle + rot_radians)
-        x_offset = radius * math.cos(angle + rot_radians)
-        points.append((x + x_offset, y + y_offset))
-
-    pygame.draw.polygon(screen, color, points)
-
 class Card():
     def __init__(self, name:str, moves:list[list[int]], stPoint=list[int], cardL=CARD_LENGTH, cardH=CARD_HEIGHT) -> None:
         self.name = name
@@ -112,8 +97,6 @@ class Card():
         for move in self.moves:
             pygame.draw.rect(screen, "navy", pygame.Rect(centerStPoint[0]+move[0]*sq, centerStPoint[1]+move[1]*sq, sq, sq))
 
-        #drawRotatedRectangle(screen, 470, 600, CARD_HEIGHT, CARD_LENGTH, lineColor, rotation=40)
-        #drawRotatedRectangle(screen, 150, 600, CARD_HEIGHT, CARD_LENGTH, lineColor, rotation=20)
 
 class Player():
     def __init__(self, userView, cardsInGame, name, color) -> None:
@@ -194,11 +177,11 @@ class GameState():
         self.stW = stW
         self.stH = stH
         self.players = [None] * 2
-        #self.cardOut = 
         for i in range(len(self.players)):
             self.players[i] = Player(1-i, cardsInGame, f'p{i+1}', colors[i])
         self.firstPlayerIdx = random.randint(0,1)
         self.firstPlayer = self.players[self.firstPlayerIdx]
+        self.endMessage = None
         
         for el in cardsInGame:
             if self.firstPlayer.userView:
@@ -210,7 +193,6 @@ class GameState():
                 self.cardOut.mirrorCoord(1)
 
         self.cardOut.swapCoordinates()
-
         self.cardOut.swapHeightWithWidth()
 
 
@@ -230,12 +212,12 @@ class GameState():
             pygame.draw.line(screen, lineColor, (self.stW, i*SQ_SIZE+self.stH), (BOARD_HEIGHT+self.stW, i*SQ_SIZE+self.stH), SQ_SIZE//20) #Horizontal
         drawTransparentRect(screen, "navy", (n//2)*SQ_SIZE+self.stW, 0*SQ_SIZE+self.stH, SQ_SIZE, SQ_SIZE)
         drawTransparentRect(screen, "red", (n//2)*SQ_SIZE+self.stW, (n-1)*SQ_SIZE+self.stH, SQ_SIZE, SQ_SIZE)
-        """for player in self.players:
+        for player in self.players:
             for card in player.cards:
                 pygame.draw.rect(screen, "grey16", pygame.Rect(card.stPoint[0]-smallOffset, card.stPoint[1]-smallOffset, card.cardL+2*smallOffset, card.cardH+2*smallOffset))
         pygame.draw.rect(screen, "grey16", pygame.Rect((self.stW-card.cardH+2*smallOffset)/2, self.stW + SQ_SIZE/2, card.cardH+2*smallOffset, card.cardL+2*smallOffset)) #left
         pygame.draw.rect(screen, "grey16", pygame.Rect((self.stW-card.cardH+2*smallOffset)/2 + BOARD_WIDTH + 2*offset + card.cardH, self.stW + BOARD_HEIGHT - SQ_SIZE/2 - 2*smallOffset
-                                                        - card.cardL, card.cardH+2*smallOffset, card.cardL+2*smallOffset))"""
+                                                        - card.cardL, card.cardH+2*smallOffset, card.cardL+2*smallOffset))#"""
 
 
     def highlightSquares(self, screen, card, playerName: str) -> bool:
@@ -277,14 +259,15 @@ class GameState():
 
         try:
             if self.board[endSquare[0]][endSquare[1]][1] != pawnName[1] and self.board[endSquare[0]][endSquare[1]][2] == 'M':
-                print(f'Game over: {pawnName[:2]} wins!')
+                self.endMessage = self.gameFinished(pawnName[:2])
         except:
             ...
         if pawnName == 'p1M' and [endSquare[0], endSquare[1]] == self.p2Throne:
-            print(f'Game over: {pawnName[:2]} wins!')
+            self.endMessage = self.gameFinished(pawnName[:2])
+
 
         if pawnName == 'p2M' and [endSquare[0], endSquare[1]] == self.p1Throne:
-            print(f'Game over: {pawnName[:2]} wins!')
+            self.endMessage = self.gameFinished(pawnName[:2])
 
         self.board[endSquare[0]][endSquare[1]] = pawnName
 
@@ -296,3 +279,17 @@ class GameState():
         self.players[(playerToPlayIndex + 1) % 2].plays = False
         for card in self.players[(playerToPlayIndex + 1) % 2].cards:
             card.active = False
+
+
+    def gameFinished(self, message: str) -> str:
+        endMessage = f'Game over! {message} wins. Replay?'
+        return endMessage
+    
+
+    def drawEndScreen(self, message: str) -> None:
+        drawTransparentRect(screen, 'grey', 0, 0, screen.get_width(), screen.get_height(), alpha=128)
+        font = pygame.font.Font('freesansbold.ttf', 64)
+        text = font.render(message, True, 'red')
+        textRect = text.get_rect()
+        textRect.center = (screen.get_width() // 2, screen.get_height() // 2)
+        screen.blit(text, textRect)

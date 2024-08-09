@@ -55,7 +55,6 @@ def engine() -> None:
     running = True
     turnFinished = False
 
-    print(game.cardOut.name)
     while running:
         for e in pygame.event.get():
             if e.type == pygame.QUIT:
@@ -65,30 +64,32 @@ def engine() -> None:
         turnFinished = False
         drawBackground(screen)
         game.drawBoard(screen)
-        game.drawFirstCardOut()
 
         player = game.players[activePlayerIndex]
         inactivePlayer = game.players[(activePlayerIndex + 1) % 2]
-        for i in range(len(player.cards)):
-            x = player.cards[i].draw(screen, player.cards[1-i])
-            inactivePlayer.cards[i].draw(screen, player.cards[1-i])
-            if not x is None:
-                global cardToPlay
-                cardToPlay = x
+        if game.endMessage:
+            game.drawEndScreen(game.endMessage)
+        else:
+            game.drawFirstCardOut()
+            for i in range(len(player.cards)):
+                x = player.cards[i].draw(screen, player.cards[1-i])
+                inactivePlayer.cards[i].draw(screen, player.cards[1-i])
+                if not x is None:
+                    global cardToPlay
+                    cardToPlay = x
+            
+            if not cardToPlay is None:
+                turnFinished = game.highlightSquares(screen, cardToPlay, player.name)
+            
+            drawPawns(screen, game.board, (SCREEN_WIDTH-BOARD_HEIGHT)/2, (SCREEN_HEIGHT-BOARD_HEIGHT)/2)
+            
+            if turnFinished:
+                activePlayerIndex = (activePlayerIndex + 1) % 2
+                game.playerTurn(activePlayerIndex)
+                player.unclickCards()
+                game.cardOut = player.sendCard(cardToPlay, game.cardOut)
+                cardToPlay = None
         
-        if not cardToPlay is None:
-            turnFinished = game.highlightSquares(screen, cardToPlay, player.name)
-            #cardUsed = 
-        drawPawns(screen, game.board, (SCREEN_WIDTH-BOARD_HEIGHT)/2, (SCREEN_HEIGHT-BOARD_HEIGHT)/2)
-        
-        if turnFinished:
-            activePlayerIndex = (activePlayerIndex + 1) % 2
-            game.playerTurn(activePlayerIndex)
-            player.unclickCards()
-            game.cardOut = player.sendCard(cardToPlay, game.cardOut)
-            #player.receiveCard()
-            cardToPlay = None
-
         clock.tick(MAX_FPS)
         pygame.display.flip()
 
