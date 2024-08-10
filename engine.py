@@ -169,7 +169,8 @@ class GameState():
                     + [["--" for i in range(n)] for i in range(n-2)] \
                     + [["p2S" for i in range(n)]]
         self.p1Throne = [0, n//2]
-        self.p2Throne = [n-1, n//2]
+        #self.p2Throne = [n-1, n//2]
+        self.p2Throne = [n-3, n//2] #this is to be replaced with code above
         self.board[self.p1Throne[0]][self.p1Throne[1]] = "p1M"
         self.board[self.p2Throne[0]][self.p2Throne[1]] = "p2M"
         self.clicked = False
@@ -303,13 +304,30 @@ class GameState():
         for line in range(len(self.board)):
             for row in range(len(self.board[line])):
                 if self.board[line][row][:2] == playerName:
-                    coords.append([line, row])
+                    coords.append([row, line])
         return coords
     
-    def getPlayerValidMoves(self, playerName):
+
+    def getPlayerValidMoves(self, playerName) -> list:
+        validMoves = []
         for player in self.players:
             if player.name == playerName:
                 for card in player.cards:
-                    print(card.name)
-                    print(card.moves)
-        
+                    #print(card.name)
+                    pawnsInGame = self.getPlayerPawnCoords(playerName)
+                    for move in card.moves:
+                        for pawnCoords in pawnsInGame:
+                            if (move[0] + pawnCoords[0]) >= 0 and (move[0] + pawnCoords[0]) < n and \
+                                (move[1] + pawnCoords[1]) >= 0 and (move[1] + pawnCoords[1]) < n:
+                                if not self.board[move[1] + pawnCoords[1]][move[0] + pawnCoords[0]][:2] == playerName:
+                                    if self.board[pawnCoords[1]][pawnCoords[0]][-1] == 'M':
+                                        squaresInDanger = self.getPlayerValidMoves(f'p{(int(playerName[1])+1) % 2}')
+                                        for i in range(len(squaresInDanger)):
+                                            squaresInDanger[i] = squaresInDanger[i][1]
+                                        if not [move[0] + pawnCoords[0], move[1] + pawnCoords[1]] in squaresInDanger:
+                                            validMoves.append([pawnCoords, [move[0] + pawnCoords[0], move[1] + pawnCoords[1]]])
+                                    else:
+                                        validMoves.append([pawnCoords, [move[0] + pawnCoords[0], move[1] + pawnCoords[1]]])
+        if playerName == 'p2':
+            print(validMoves)
+        return validMoves

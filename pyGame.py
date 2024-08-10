@@ -5,7 +5,7 @@ import json
 from engine import *
 import random
 
-MAX_FPS = 15
+MAX_FPS = 10
 IMAGES = {}
 cardToPlay = None
 
@@ -57,6 +57,7 @@ def engine() -> None:
     loadImages()
     running = True
     turnFinished = False
+    x = game.getPlayerValidMoves('p2')
 
     while running:
         for e in pygame.event.get():
@@ -89,7 +90,6 @@ def engine() -> None:
                 turnFinished = game.highlightSquares(screen, cardToPlay, player.name)
             
             drawPawns(screen, game.board, (SCREEN_WIDTH-BOARD_HEIGHT)/2, (SCREEN_HEIGHT-BOARD_HEIGHT)/2)
-            #game.getPlayerValidMoves('p2')
             
             if turnFinished:
                 game.activePlayerIndex = (game.activePlayerIndex + 1) % 2
@@ -100,6 +100,7 @@ def engine() -> None:
         
         clock.tick(MAX_FPS)
         pygame.display.flip()
+    
 
 
 if __name__ == "__main__":
