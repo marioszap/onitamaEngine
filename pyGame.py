@@ -61,9 +61,10 @@ def engine(p1Type=0, p2Type=0) -> None:
     turnFinished = False
     x = game.getPlayerValidMoves('p2')
 
-    if p1Type:
-        for card in game.players[game.activePlayerIndex].cards:
-            card.active = False
+    for p in range(len(pTypes)):
+        if pTypes[p]:
+            for card in game.players[p].cards:
+                card.active = False
     
     while running:
         for e in pygame.event.get():
@@ -95,7 +96,6 @@ def engine(p1Type=0, p2Type=0) -> None:
                     cardToPlay = x
             
             if not cardToPlay is None:
-                print(pTypes[game.activePlayerIndex])
                 if pTypes[game.activePlayerIndex] == 0:
                     turnFinished = game.highlightSquares(screen, cardToPlay, player.name)
                 elif int(pTypes[game.activePlayerIndex]) == 1:
