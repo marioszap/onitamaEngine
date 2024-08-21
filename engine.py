@@ -2,6 +2,7 @@ import random, os
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 import pygame
 import math
+import itertools
 import sys
 
 n = 5
@@ -262,7 +263,7 @@ class GameState():
                 self.endMessage = self.gameFinished(pawnName[:2])
         except:
             ...
-
+        #game finished if master lands on opposing throne:
         if pawnName == 'p1M' and [endSquare[0], endSquare[1]] == self.p2Throne:
             self.endMessage = self.gameFinished(pawnName[:2])
         if pawnName == 'p2M' and [endSquare[0], endSquare[1]] == self.p1Throne:
@@ -270,10 +271,12 @@ class GameState():
         self.board[endSquare[0]][endSquare[1]] = pawnName
 
 
-    def playerTurn(self, playerToPlayIndex: int) -> None:
+    def playerTurn(self, playerToPlayIndex: int, pTypes: list) -> None:
         self.players[playerToPlayIndex].plays = True
-        for card in self.players[playerToPlayIndex].cards:
-            card.active = True
+        isAI = pTypes[playerToPlayIndex]
+        if not isAI:
+            for card in self.players[playerToPlayIndex].cards:
+                card.active = True
         self.players[(playerToPlayIndex + 1) % 2].plays = False
         for card in self.players[(playerToPlayIndex + 1) % 2].cards:
             card.active = False
@@ -313,7 +316,6 @@ class GameState():
         for player in self.players:
             if player.name == playerName:
                 for card in player.cards:
-                    #print(card.name)
                     pawnsInGame = self.getPlayerPawnCoords(playerName)
                     for move in card.moves:
                         for pawnCoords in pawnsInGame:
@@ -328,6 +330,6 @@ class GameState():
                                             validMoves.append([pawnCoords, [move[0] + pawnCoords[0], move[1] + pawnCoords[1]]])
                                     else:
                                         validMoves.append([pawnCoords, [move[0] + pawnCoords[0], move[1] + pawnCoords[1]]])
-        if playerName == 'p2':
-            print(validMoves)
-        return validMoves
+        
+        validMoves = list(k for k,_ in itertools.groupby(validMoves)) #drop duplicates
+        return validMoves #format: [[pawnCoordX, pawnCoordY], [newCoordX, newCoordY]]
