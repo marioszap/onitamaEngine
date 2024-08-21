@@ -61,7 +61,7 @@ def engine(p1Type=0, p2Type=0) -> None:
     turnFinished = False
     x = game.getPlayerValidMoves('p2')
 
-    for p in range(len(pTypes)):
+    for p in range(len(pTypes)): #if player is played by AI inactivate their cards
         if pTypes[p]:
             for card in game.players[p].cards:
                 card.active = False
@@ -89,7 +89,7 @@ def engine(p1Type=0, p2Type=0) -> None:
             for i in range(len(player.cards)):
                 x = player.cards[i].draw(screen, player.cards[1-i])
                 if pTypes[game.activePlayerIndex]: #if player is AI 
-                    x = player.cards[0]
+                    x = player.cards[0] 
                 inactivePlayer.cards[i].draw(screen, player.cards[1-i])
                 if not x is None:
                     global cardToPlay

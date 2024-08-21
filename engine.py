@@ -311,11 +311,12 @@ class GameState():
         return coords
     
 
-    def getPlayerValidMoves(self, playerName) -> list:
-        validMoves = []
+    def getPlayerValidMoves(self, playerName, returnList=False):
+        validMoves = {}
         for player in self.players:
             if player.name == playerName:
                 for card in player.cards:
+                    validMoves[card.name] = []
                     pawnsInGame = self.getPlayerPawnCoords(playerName)
                     for move in card.moves:
                         for pawnCoords in pawnsInGame:
@@ -323,13 +324,15 @@ class GameState():
                                 (move[1] + pawnCoords[1]) >= 0 and (move[1] + pawnCoords[1]) < n:
                                 if not self.board[move[1] + pawnCoords[1]][move[0] + pawnCoords[0]][:2] == playerName:
                                     if self.board[pawnCoords[1]][pawnCoords[0]][-1] == 'M':
-                                        squaresInDanger = self.getPlayerValidMoves(f'p{(int(playerName[1])+1) % 2}')
+                                        squaresInDanger = self.getPlayerValidMoves(f'p{(int(playerName[1])+1) % 2}', True)
                                         for i in range(len(squaresInDanger)):
                                             squaresInDanger[i] = squaresInDanger[i][1]
                                         if not [move[0] + pawnCoords[0], move[1] + pawnCoords[1]] in squaresInDanger:
-                                            validMoves.append([pawnCoords, [move[0] + pawnCoords[0], move[1] + pawnCoords[1]]])
+                                            validMoves[card.name].append([pawnCoords, [move[0] + pawnCoords[0], move[1] + pawnCoords[1]]])
                                     else:
-                                        validMoves.append([pawnCoords, [move[0] + pawnCoords[0], move[1] + pawnCoords[1]]])
-        
-        validMoves = list(k for k,_ in itertools.groupby(validMoves)) #drop duplicates
+                                        validMoves[card.name].append([pawnCoords, [move[0] + pawnCoords[0], move[1] + pawnCoords[1]]])
+        if returnList:
+            validMoves = list(validMoves.values())
+            validMoves = list(k for k,_ in itertools.groupby(validMoves)) #drop duplicates
+        print(validMoves)
         return validMoves #format: [[pawnCoordX, pawnCoordY], [newCoordX, newCoordY]]
