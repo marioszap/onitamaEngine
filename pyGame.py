@@ -52,7 +52,7 @@ def drawPawns(screen, board, stW, stH) -> None:
 
 def engine(p1Type=0, p2Type=0) -> None:
     pygame.init()
-    pTypes = [p1Type, p2Type]
+    pTypes = [int(p1Type), int(p2Type)]
     game = initGame(pTypes)
     clock = pygame.time.Clock()
     screen.fill(pygame.Color("white"))
@@ -61,10 +61,11 @@ def engine(p1Type=0, p2Type=0) -> None:
     turnFinished = False
     x = game.getPlayerValidMoves('p2')
 
-    for p in range(len(pTypes)): #if player is played by AI inactivate their cards
+    for p in range(len(pTypes)): #if player is played by AI deactivate their cards
         if pTypes[p]:
             for card in game.players[p].cards:
                 card.active = False
+                print('deactivated')
     
     while running:
         for e in pygame.event.get():
@@ -96,7 +97,7 @@ def engine(p1Type=0, p2Type=0) -> None:
                     cardToPlay = x
             
             if not cardToPlay is None:
-                if pTypes[game.activePlayerIndex] == 0:
+                if int(pTypes[game.activePlayerIndex]) == 0:
                     turnFinished = game.highlightSquares(screen, cardToPlay, player.name)
                 elif int(pTypes[game.activePlayerIndex]) == 1:
                     game.movePawn([0,0], [1,1])

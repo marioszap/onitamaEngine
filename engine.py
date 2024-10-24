@@ -170,8 +170,8 @@ class GameState():
                     + [["--" for i in range(n)] for i in range(n-2)] \
                     + [["p2S" for i in range(n)]]
         self.p1Throne = [0, n//2]
-        #self.p2Throne = [n-1, n//2]
-        self.p2Throne = [n-3, n//2] #this is to be replaced with code above
+        self.p2Throne = [n-1, n//2]
+        #self.p2Throne = [n-3, n//2] #this is to be replaced with code above
         self.board[self.p1Throne[0]][self.p1Throne[1]] = "p1M"
         self.board[self.p2Throne[0]][self.p2Throne[1]] = "p2M"
         self.clicked = False
@@ -334,5 +334,6 @@ class GameState():
         if returnList:
             validMoves = list(validMoves.values())
             validMoves = list(k for k,_ in itertools.groupby(validMoves)) #drop duplicates
-        print(validMoves)
-        return validMoves #format: [[pawnCoordX, pawnCoordY], [newCoordX, newCoordY]]
+
+        return validMoves #format list: [[[pawnCoordX, pawnCoordY], [newCoordX, newCoordY]], ..., ]
+                        #format dict: {card1: [[[pawnCoordX, pawnCoordY], [newCoordX, newCoordY]], ... ,]}
