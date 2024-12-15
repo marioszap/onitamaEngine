@@ -3,6 +3,7 @@ os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 import pygame
 import json
 from engine import *
+from minMax import *
 import random
 import sys
 
@@ -59,14 +60,19 @@ def engine(p1Type=0, p2Type=0) -> None:
     loadImages()
     running = True
     turnFinished = False
-    x = game.getPlayerValidMoves('p2')
 
     for p in range(len(pTypes)): #if player is played by AI deactivate their cards
         if pTypes[p]:
+            minmax = minMax(game)
             for card in game.players[p].cards:
                 card.active = False
                 print('deactivated')
     
+    minmax = minMax(game)
+    x = game.getPlayerValidMoves(game.firstPlayer.name)
+    print(x)
+    #minmax.scoreEachMove(x, game.firstPlayerIdx, game.firstPlayer.name)
+
     while running:
         for e in pygame.event.get():
             if e.type == pygame.QUIT:
@@ -100,7 +106,8 @@ def engine(p1Type=0, p2Type=0) -> None:
                 if int(pTypes[game.activePlayerIndex]) == 0:
                     turnFinished = game.highlightSquares(screen, cardToPlay, player.name)
                 elif int(pTypes[game.activePlayerIndex]) == 1:
-                    game.movePawn([0,0], [1,1])
+                    #game.movePawn([0,0], [1,1])
+                    #minMaxPlayNextMove()
                     turnFinished = True
                 elif int(pTypes[game.activePlayerIndex]) == 2:
                     game.movePawn([0,1], [1,1])
