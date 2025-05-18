@@ -6,6 +6,7 @@ from engine import *
 from minMax import *
 import random
 import sys
+import ast
 
 MAX_FPS = 10
 IMAGES = {}
@@ -15,7 +16,7 @@ def initGame(pTypes) -> GameState:
     cardsInGame = loadCards()
     game = GameState(n, cardsInGame)
     game.activePlayerIndex = game.firstPlayerIdx
-    game.playerTurn(game.activePlayerIndex, pTypes)
+    game.playerTurn(pTypes)
     return game
 
 def loadCards() -> dict[str]:
@@ -26,6 +27,7 @@ def loadCards() -> dict[str]:
     cardsInGame = {}
     for name in cardsNames:
         cardsInGame[name] = allCards[name]
+    print('cardsInGame: ', cardsInGame)
     return cardsInGame
 
 
@@ -69,8 +71,16 @@ def engine(p1Type=0, p2Type=0) -> None:
                 print('deactivated')
     
     minmax = minMax(game)
-    x = game.getPlayerValidMoves(game.firstPlayer.name)
-    print(x)
+    validMoves = game.getPlayerValidMoves(game.firstPlayer)
+    for cardName in validMoves:
+        print("\n",cardName, ': ', validMoves[cardName])
+        for move in validMoves[cardName]:
+            endCoords = validMoves[cardName][move]
+            print("start coord: ", ast.literal_eval(move), end=', ')
+            for endCoord in endCoords:
+                print("end coord: ",endCoord)   
+
+    #print(x)
     #minmax.scoreEachMove(x, game.firstPlayerIdx, game.firstPlayer.name)
 
     while running:
@@ -109,20 +119,23 @@ def engine(p1Type=0, p2Type=0) -> None:
                     #game.movePawn([0,0], [1,1])
                     #minMaxPlayNextMove()
                     turnFinished = True
-                elif int(pTypes[game.activePlayerIndex]) == 2:
+                """elif int(pTypes[game.activePlayerIndex]) == 2:
                     game.movePawn([0,1], [1,1])
-                    turnFinished = True
+                    turnFinished = True"""
             
             drawPawns(screen, game.board, (SCREEN_WIDTH-BOARD_HEIGHT)/2, (SCREEN_HEIGHT-BOARD_HEIGHT)/2)
 
             if turnFinished:
-                game.activePlayerIndex = (game.activePlayerIndex + 1) % 2
-                game.playerTurn(game.activePlayerIndex, pTypes)
+                #game.activePlayerIndex = (game.activePlayerIndex + 1) % 2
+                game.playerTurn(pTypes)
                 player.unclickCards()
                 game.cardOut = player.sendCard(cardToPlay, game.cardOut)
+                #game.undoMove()
+                
                 cardToPlay = None
                 turnFinished = False
-        
+                print(game.moveLog)
+
         clock.tick(MAX_FPS)
         pygame.display.flip()
 

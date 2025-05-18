@@ -4,6 +4,7 @@ import pygame
 import math
 import itertools
 import sys
+import copy
 
 n = 5
 COLORS = ['red', 'blue']
@@ -126,6 +127,10 @@ class Player():
             for card in self.cards:
                 card.mirrorCoord(0)#"""
 
+    def getCardIndexByName(self, cardName) -> int :
+        for i in range(2):
+            if self.cards[i].name == cardName:
+                return i
 
     def pickCards(self, cardsDict: dict, coorsX: list[int], coorY: int) -> list[Card]:
         cardsToChooseFrom = random.sample([card for card in cardsDict], 2)
@@ -181,14 +186,14 @@ class GameState():
         self.board[self.p1Throne[0]][self.p1Throne[1]] = "p1M"
         self.board[self.p2Throne[0]][self.p2Throne[1]] = "p2M"
         ########################################to be removed################################################
-        self.board[self.p2Throne[0]][self.p2Throne[1]+1] = '--'
+        """self.board[self.p2Throne[0]][self.p2Throne[1]+1] = '--'
         self.board[self.p1Throne[0]][self.p1Throne[1]+1] = '--'
         self.board[self.p2Throne[0]][self.p2Throne[1]-1] = '--'
         self.board[self.p1Throne[0]][self.p1Throne[1]-1] = '--'
         self.board[self.p2Throne[0]][self.p2Throne[1]] = "--"
         self.board[self.p1Throne[0]][self.p1Throne[1]] = "--"
         self.board[1][3] = "p1M"
-        self.board[1][1] = "p2M"
+        self.board[1][1] = "p2M"#"""
         ########################################to be removed################################################
         self.clicked = False
         self.clickArea = pygame.Rect(stW, stH, BOARD_HEIGHT, BOARD_HEIGHT)
@@ -209,9 +214,14 @@ class GameState():
                                                         self.stW + BOARD_HEIGHT - SQ_SIZE/2 - 2*smallOffset- CARD_LENGTH + smallOffset])
                 self.cardOut.mirrorCoord(0)
                 self.cardOut.mirrorCoord(1)
-
+        self.moveLog = [{self.cardOut.name+'_': []}]
+        self.previousState = None
         self.cardOut.swapCoordinates()
         self.cardOut.swapHeightWithWidth()
+        self.cardsInGame = []
+        for player in self.players:
+            for card in player.cards:
+                self.cardsInGame.append(card)
 
 
     def drawFirstCardOut(self) -> None:
@@ -238,7 +248,8 @@ class GameState():
                                                         - card.cardL, card.cardH+2*smallOffset, card.cardL+2*smallOffset))#"""
 
 
-    def highlightSquares(self, screen, card, playerName: str) -> bool:
+
+    def highlightSquares(self, screen, card: Card, playerName: str) -> bool:
         mousePosition = pygame.mouse.get_pos()
         squareHovered = [None] * 2
         sqHighlightColor = 'yellow'
@@ -264,14 +275,15 @@ class GameState():
                     and self.board[squareClicked[0]][squareClicked[1]][:2] != self.board[sqToMove[1]][sqToMove[0]][:2]:
                         drawTransparentRect(screen, sqHighlightColor, sqToMoveCoords[0], sqToMoveCoords[1], SQ_SIZE, SQ_SIZE, 64)
                         if pygame.Rect(sqToMoveCoords[0], sqToMoveCoords[1], SQ_SIZE, SQ_SIZE).collidepoint(mousePosition) and pygame.mouse.get_pressed()[0]:
-                            self.movePawn(squareClicked, [squareClicked[0] + card.moves[i][1], squareClicked[1] + card.moves[i][0]])
+                            self.movePawn(squareClicked, [squareClicked[0] + card.moves[i][1], squareClicked[1] + card.moves[i][0]], card.name)
                             self.clicked = False
                             return True
                 except:
                     ...
 
 
-    def movePawn(self, startSquare, endSquare) -> None:
+    def movePawn(self, startSquare, endSquare, cardName: str) -> None:
+
         pawnName = self.board[startSquare[0]][startSquare[1]]
         self.board[startSquare[0]][startSquare[1]] = '--'
         try:
@@ -286,15 +298,59 @@ class GameState():
             self.endMessage = self.gameFinished(pawnName[:2])
         self.board[endSquare[0]][endSquare[1]] = pawnName
 
+        self.activePlayerIndex = (self.activePlayerIndex + 1) % 2
+        
+        self.moveLog.append({cardName+"_"+pawnName: [startSquare, endSquare]})
 
-    def playerTurn(self, playerToPlayIndex: int, pTypes: list) -> None:
-        self.players[playerToPlayIndex].plays = True
-        isAI = pTypes[playerToPlayIndex]
+
+    def undoMove(self) -> None:
+        lastMove = self.moveLog[-1][next(iter(self.moveLog[-1]))]
+        nameOfCardToGive = list(self.moveLog[-2].keys())[0].split('_')[0]
+
+        [startSquare, endSquare] = lastMove
+        self.movePawn(endSquare, startSquare, "")
+        self.moveLog = self.moveLog[:-2]
+        self.playerTurn()
+        
+        cardIndex = self.players[self.activePlayerIndex].getCardIndexByName(nameOfCardToGive)
+
+        self.players[self.activePlayerIndex].cards[cardIndex].swapHeightWithWidth()
+        for i in range(3):
+            self.players[self.activePlayerIndex].cards[cardIndex].swapCoordinates()
+            self.players[self.activePlayerIndex].cards[cardIndex].mirrorCoord(0)
+
+        self.cardOut.swapHeightWithWidth()
+        for i in range(3):
+            self.cardOut.swapCoordinates()
+            self.cardOut.mirrorCoord(0)
+
+        
+        cardToReturn = self.players[self.activePlayerIndex].cards[cardIndex]
+        self.players[self.activePlayerIndex].cards[cardIndex] = self.cardOut
+        self.cardOut = cardToReturn
+        self.players[self.activePlayerIndex].cards[cardIndex].stPoint = self.cardOut.stPoint
+        #change active status
+        self.players[self.activePlayerIndex].cards[cardIndex].active = True
+        self.cardOut.active = False
+
+        if self.firstPlayer.userView:
+            self.cardOut.stPoint = [(self.stW-CARD_HEIGHT+4*smallOffset)/2, self.stW + SQ_SIZE/2 + smallOffset]      
+        else:
+            self.cardOut.stPoint = [(self.stW-CARD_HEIGHT+4*smallOffset)/2 + BOARD_WIDTH + 2*bigOffset + CARD_HEIGHT,
+                                    self.stW + BOARD_HEIGHT - SQ_SIZE/2 - 2*smallOffset- CARD_LENGTH + smallOffset]
+
+
+
+    def playerTurn(self, pTypes = [0, 0]) -> None:
+
+        self.players[self.activePlayerIndex].plays = True
+        isAI = pTypes[self.activePlayerIndex]
         if not isAI:
-            for card in self.players[playerToPlayIndex].cards:
+            for card in self.players[self.activePlayerIndex].cards:
                 card.active = True
-        self.players[(playerToPlayIndex + 1) % 2].plays = False
-        for card in self.players[(playerToPlayIndex + 1) % 2].cards:
+        self.players[(self.activePlayerIndex + 1) % 2].plays = False
+        #self.activePlayerIndex
+        for card in self.players[(self.activePlayerIndex + 1) % 2].cards:
             card.active = False
 
 
@@ -325,40 +381,37 @@ class GameState():
                 if self.board[line][row][:2] == playerName:
                     coords.append([row, line])
         return coords
-    
 
-    def getPlayerValidMoves(self, playerName, lookForChecks=True, returnList = False):
+
+    def getPlayerValidMoves(self, player: Player, lookForChecks=True, returnList = False):
         validMoves = {}
-        for player in self.players:
-            if player.name == playerName:
-                if lookForChecks:
-                    squaresInDanger = self.getPlayerValidMoves(f'p{(int(playerName[1]) % 2+1)}', False, True)
-                    print(squaresInDanger)
-                for card in player.cards:
-                    validMoves[card.name] = {}
-                    pawnsInGame = self.getPlayerPawnCoords(playerName)
-                    for pawnCoords in pawnsInGame:
-                        validMoves[card.name][str(pawnCoords)] = []
-                        for move in card.moves:
-                            if (move[0] + pawnCoords[0]) >= 0 and (move[0] + pawnCoords[0]) < n and \
-                                (move[1] + pawnCoords[1]) >= 0 and (move[1] + pawnCoords[1]) < n: #if move is on game board
-                                if not self.board[move[1] + pawnCoords[1]][move[0] + pawnCoords[0]][:2] == playerName: #if there is no pawn of same color already there
-                                    if self.board[pawnCoords[1]][pawnCoords[0]][-1] == 'M' and lookForChecks:
-                                        try:
-                                            if self.board[move[1] + pawnCoords[1]][move[0] + pawnCoords[0]][2] == 'M':
-                                                print('will hit master')
-                                                validMoves[card.name][str(pawnCoords)].append([move[0] + pawnCoords[0], move[1] + pawnCoords[1]])
-                                        except:
-                                            if [move[0] + pawnCoords[0], move[1] + pawnCoords[1]] in squaresInDanger:
-                                                print("conflict: ", move[0] + pawnCoords[0], move[1] + pawnCoords[1])
-                                            else:
-                                                print("adding: ", move[0] + pawnCoords[0], move[1] + pawnCoords[1])
-                                                validMoves[card.name][str(pawnCoords)].append([move[0] + pawnCoords[0], move[1] + pawnCoords[1]])
-                                        
-                                    else:
+        if lookForChecks:
+            squaresInDanger = self.getPlayerValidMoves([x for x in self.players if not player == x][0], False, True) #call for other player
+            print(squaresInDanger)
+        for card in player.cards:
+            validMoves[card.name] = {}
+            pawnsInGame = self.getPlayerPawnCoords(player.name)
+            for pawnCoords in pawnsInGame:
+                validMoves[card.name][str(pawnCoords)] = []
+                for move in card.moves:
+                    if (move[0] + pawnCoords[0]) >= 0 and (move[0] + pawnCoords[0]) < n and \
+                        (move[1] + pawnCoords[1]) >= 0 and (move[1] + pawnCoords[1]) < n: #if move is whithin game board boundaries
+                        if not self.board[move[1] + pawnCoords[1]][move[0] + pawnCoords[0]][:2] == player.name: #if there is no pawn of same color already there
+                            if self.board[pawnCoords[1]][pawnCoords[0]][-1] == 'M' and lookForChecks:
+                                try:
+                                    if self.board[move[1] + pawnCoords[1]][move[0] + pawnCoords[0]][2] == 'M':
+                                        print('will hit master')
                                         validMoves[card.name][str(pawnCoords)].append([move[0] + pawnCoords[0], move[1] + pawnCoords[1]])
-                        validMoves[card.name][str(pawnCoords)] = list(k for k,_ in itertools.groupby(validMoves[card.name][str(pawnCoords)]))
-                        
+                                except:
+                                    if [move[0] + pawnCoords[0], move[1] + pawnCoords[1]] in squaresInDanger:
+                                        print("conflict: ", move[0] + pawnCoords[0], move[1] + pawnCoords[1])
+                                    else:
+                                        print("adding: ", move[0] + pawnCoords[0], move[1] + pawnCoords[1])
+                                        validMoves[card.name][str(pawnCoords)].append([move[0] + pawnCoords[0], move[1] + pawnCoords[1]])
+                                
+                            else:
+                                validMoves[card.name][str(pawnCoords)].append([move[0] + pawnCoords[0], move[1] + pawnCoords[1]])
+                validMoves[card.name][str(pawnCoords)] = list(k for k,_ in itertools.groupby(validMoves[card.name][str(pawnCoords)]))
         if returnList:
             validMoves = list(validMoves.values())
             tempList = []
@@ -369,5 +422,10 @@ class GameState():
             tempList = [list(tupl) for tupl in {tuple(item) for item in tempList }] #drop duplicates
             validMoves = tempList
 
+        else:
+            for key, value in validMoves.items():
+                validMoves[key] = {k: v for k, v in value.items() if v}
+            
+            validMoves = {k: v for k, v in validMoves.items() if v}
         return validMoves #format list: [[newCoordX, newCoordY], ...] keeps only end positions
                         #format dict: {card1Name: {'[pawnCoordX, pawnCoordY]': [newCoordX, newCoordY]], ... ,], '[otherPawnCoordX, otherPawnCoordY]'}}
