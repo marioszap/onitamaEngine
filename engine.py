@@ -38,6 +38,7 @@ class Card():
         self.stPoint = stPoint
         self.clicked = False
         self.active = False #Is this card in hand of the player whose turn it is?
+        self.rarity = 0
 
     def mirrorCoord(self, coord) -> None:
         for i in range(len(self.moves)):
@@ -199,7 +200,7 @@ class GameState():
         self.clickArea = pygame.Rect(stW, stH, BOARD_HEIGHT, BOARD_HEIGHT)
         self.stW = stW
         self.stH = stH
-        self.players = [None] * 2
+        self.players = [Player] * 2
         for i in range(len(self.players)):
             self.players[i] = Player(1-i, cardsInGame, f'p{i+1}', colors[i])
         self.firstPlayerIdx = random.randint(0,1)
@@ -214,7 +215,7 @@ class GameState():
                                                         self.stW + BOARD_HEIGHT - SQ_SIZE/2 - 2*smallOffset- CARD_LENGTH + smallOffset])
                 self.cardOut.mirrorCoord(0)
                 self.cardOut.mirrorCoord(1)
-        self.moveLog = [{self.cardOut.name+'_': []}]
+        self.moveLog = [{self.cardOut.name+'_--_--': []}]
         self.previousState = None
         self.cardOut.swapCoordinates()
         self.cardOut.swapHeightWithWidth()
@@ -222,6 +223,7 @@ class GameState():
         for player in self.players:
             for card in player.cards:
                 self.cardsInGame.append(card)
+        self.cardsInGame.append(self.cardOut)
 
 
     def drawFirstCardOut(self) -> None:
@@ -286,6 +288,7 @@ class GameState():
 
         pawnName = self.board[startSquare[0]][startSquare[1]]
         self.board[startSquare[0]][startSquare[1]] = '--'
+        contentOfSquareBefore = self.board[endSquare[0]][endSquare[1]]
         try:
             if self.board[endSquare[0]][endSquare[1]][1] != pawnName[1] and self.board[endSquare[0]][endSquare[1]][2] == 'M':
                 self.endMessage = self.gameFinished(pawnName[:2])
@@ -300,18 +303,27 @@ class GameState():
 
         self.activePlayerIndex = (self.activePlayerIndex + 1) % 2
         
-        self.moveLog.append({cardName+"_"+pawnName: [startSquare, endSquare]})
+        self.moveLog.append({cardName+"_"+pawnName+"_"+contentOfSquareBefore: [startSquare, endSquare]})
 
 
     def undoMove(self) -> None:
+        #Task: Add to movelog captures in order to respawn pawns when move that captures is undone
         lastMove = self.moveLog[-1][next(iter(self.moveLog[-1]))]
         nameOfCardToGive = list(self.moveLog[-2].keys())[0].split('_')[0]
+        pawnToRespawn = list(self.moveLog[-1].keys())[0].split('_')[2]
+        print("lastMove: ",self.moveLog[-1])
+        print("PawnToRespawn: ", pawnToRespawn)
+        
 
         [startSquare, endSquare] = lastMove
+        
         self.movePawn(endSquare, startSquare, "")
         self.moveLog = self.moveLog[:-2]
         self.playerTurn()
-        
+        if pawnToRespawn != '--':
+            self.board[endSquare[0]][endSquare[1]] = pawnToRespawn
+        for card in self.players[self.activePlayerIndex].cards:
+            print(card.name)
         cardIndex = self.players[self.activePlayerIndex].getCardIndexByName(nameOfCardToGive)
 
         self.players[self.activePlayerIndex].cards[cardIndex].swapHeightWithWidth()
@@ -324,7 +336,6 @@ class GameState():
             self.cardOut.swapCoordinates()
             self.cardOut.mirrorCoord(0)
 
-        
         cardToReturn = self.players[self.activePlayerIndex].cards[cardIndex]
         self.players[self.activePlayerIndex].cards[cardIndex] = self.cardOut
         self.cardOut = cardToReturn
@@ -339,6 +350,11 @@ class GameState():
             self.cardOut.stPoint = [(self.stW-CARD_HEIGHT+4*smallOffset)/2 + BOARD_WIDTH + 2*bigOffset + CARD_HEIGHT,
                                     self.stW + BOARD_HEIGHT - SQ_SIZE/2 - 2*smallOffset- CARD_LENGTH + smallOffset]
 
+
+    def getCardByName(self, cardName: str) -> Card:
+        for card in self.cardsInGame:
+            if card.name == cardName:
+                return card
 
 
     def playerTurn(self, pTypes = [0, 0]) -> None:
@@ -387,7 +403,7 @@ class GameState():
         validMoves = {}
         if lookForChecks:
             squaresInDanger = self.getPlayerValidMoves([x for x in self.players if not player == x][0], False, True) #call for other player
-            print(squaresInDanger)
+            #print(squaresInDanger)
         for card in player.cards:
             validMoves[card.name] = {}
             pawnsInGame = self.getPlayerPawnCoords(player.name)
@@ -400,13 +416,14 @@ class GameState():
                             if self.board[pawnCoords[1]][pawnCoords[0]][-1] == 'M' and lookForChecks:
                                 try:
                                     if self.board[move[1] + pawnCoords[1]][move[0] + pawnCoords[0]][2] == 'M':
-                                        print('will hit master')
+                                        #print('will hit master')
                                         validMoves[card.name][str(pawnCoords)].append([move[0] + pawnCoords[0], move[1] + pawnCoords[1]])
                                 except:
                                     if [move[0] + pawnCoords[0], move[1] + pawnCoords[1]] in squaresInDanger:
-                                        print("conflict: ", move[0] + pawnCoords[0], move[1] + pawnCoords[1])
+                                        #print("conflict: ", move[0] + pawnCoords[0], move[1] + pawnCoords[1])
+                                        pass
                                     else:
-                                        print("adding: ", move[0] + pawnCoords[0], move[1] + pawnCoords[1])
+                                        #print("adding: ", move[0] + pawnCoords[0], move[1] + pawnCoords[1])
                                         validMoves[card.name][str(pawnCoords)].append([move[0] + pawnCoords[0], move[1] + pawnCoords[1]])
                                 
                             else:
@@ -417,7 +434,7 @@ class GameState():
             tempList = []
             for i in range(len(validMoves)):
                 for subList in list(validMoves[i].values()):
-                    print(subList)
+                    #print(subList)
                     tempList += subList
             tempList = [list(tupl) for tupl in {tuple(item) for item in tempList }] #drop duplicates
             validMoves = tempList
@@ -427,5 +444,7 @@ class GameState():
                 validMoves[key] = {k: v for k, v in value.items() if v}
             
             validMoves = {k: v for k, v in validMoves.items() if v}
+            #print("Valid Moves: ")
+            #print(validMoves)
         return validMoves #format list: [[newCoordX, newCoordY], ...] keeps only end positions
                         #format dict: {card1Name: {'[pawnCoordX, pawnCoordY]': [newCoordX, newCoordY]], ... ,], '[otherPawnCoordX, otherPawnCoordY]'}}

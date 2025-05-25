@@ -1,4 +1,5 @@
 import ast
+import json
 from engine import *
 import numpy as np
 import math
@@ -44,7 +45,7 @@ class minMax():
                         math.sqrt((currCoord[1] - targetThrone[0])**2 + (currCoord[0] - targetThrone[1])**2): #is closer to enemy throne than currSquare
                         score += 1
                 movesScored[cardName][i] = {'score': score, 'move': moves[cardName][i]}
-        print(movesScored)
+        #print(movesScored)
 
     def minMaxPlayNextMove(self, activePlayer: Player, predictMovesAhead: int):
         score: int = 0
@@ -81,87 +82,157 @@ def setupMinMaxTree(game: GameState):
     
     ...
 
-class node(): #nodes represnt game states that occur after players' moves
-    def __init__(self, gameState: GameState, evaluation=0, children = []):
-        self.gameState = gameState
-        self.children = children
-        self.eval = evaluation
-        self.minmaxIndex = toAbsOne(self.gameState.activePlayerIndex)
+def cardRarity(cardsInGame: list[Card]) -> None:
+    movesInGame = []
+    allCards = open('cardsMoves.json')
+    allCards = json.load(allCards)
+    for card in cardsInGame:
+        print(f"for {card.name}", allCards[card.name])
+        movesInGame += allCards[card.name]
+    numAppearencesOfMoves = 0
+    print("movesInGame: ", movesInGame)
+    for card in cardsInGame:
+        for move in allCards[card.name]:
+            for moveInGame in movesInGame:
+                if move == moveInGame:
+                    numAppearencesOfMoves += 1 - (move[1]/10 * (move[1] > 0))
+        card.rarity = len(allCards[card.name]) / numAppearencesOfMoves
+        print(card.name, ": len: ", len(allCards[card.name]), '/', numAppearencesOfMoves, ' = ', card.rarity)
+        numAppearencesOfMoves = 0
 
-        validMoves = self.gameSate.getPlayerValidMoves(self.gameSate.firstPlayer)
+
+
+class node(): #nodes represnt game states that occur after players' moves
+    def __init__(self, gameState: GameState, isRoot = False, isLeaf = False):
+        self.gameState = gameState
+        self.children: list[dict] = []
+        self.eval = 0
+        self.minmaxPlayerIndex = toAbsOne(self.gameState.activePlayerIndex)
+        self.isRoot = isRoot #First node to be created should be root
+        if isRoot:
+            self.childrenScores = []
+
+        self.validMoves = self.gameState.getPlayerValidMoves(self.gameState.players[self.gameState.activePlayerIndex])  
         
-        for cardName in validMoves:
-            print("\n",cardName, ': ', validMoves[cardName])
-            for move in validMoves[cardName]:
-                endCoords = validMoves[cardName][move]
+        """for cardName in self.validMoves:
+            print("\n",cardName, ': ', self.validMoves[cardName])
+            for move in self.validMoves[cardName]:
+                endCoords = self.validMoves[cardName][move]
                 print("start coord: ", ast.literal_eval(move), end=', ')
                 for endCoord in endCoords:
-                    print("end coord: ",endCoord)
+                    print("end coord: ", endCoord)#"""
+        if not isLeaf:
+            for cardName in self.validMoves:
+                for move in self.validMoves[cardName]:
+                    endCoords = self.validMoves[cardName][move]
+                    startCoord = ast.literal_eval(move)
+                    for endCoord in endCoords:
+                        self.children.append({cardName : [startCoord, endCoord]})
 
 
-    def evaluate(self, move: list[list: int]): #move: [[startingX, startingY], [endingX, endingY]]
-        squareToGo = self.gs.board[move[1][1]][move[1][0]]
-        
-        if len(squareToGo) == 3: #isPlayer's pawn
-            score = 10
+
+    def evaluate(self) -> float: #move: [[startingX, startingY], [endingX, endingY]]
+        board = self.gameState.board
+        score = 0
+        for row in board:
+            for square in row:
+                if square[1] == '1':
+                    score -= 10
+                elif square[1] == '2':
+                    score += 10
         return score
 
 
-    def spawnChildren(self):
-        state = self.gameState
-        state.getPlayerValidMoves(state.players[self.activePlayerIdx])
-
-
-    def checkIfGameOver(self, move: list[list: int]):
-
-        currSquare = self.gs.board[move[0][1]][move[0][0]]
-        squareToGo = self.gs.board[move[1][1]][move[1][0]]
-
-        currPlayerName = currSquare[:2]
-
-        if currPlayerName == 'p1':
-            targetThrone = self.gs.p2Throne
-        elif currPlayerName == 'p2':
-            targetThrone = self.gs.p1Throne
-        
-        if len(squareToGo) == 3: #isPlayer's pawn
-            if squareToGo[2] == 'M': #isMaster
-                return True
-        if currSquare[2] =='M':
-            if squareToGo[1] == targetThrone[0] and squareToGo[0] == targetThrone[1]:
-                return True
+    def checkIfGameOver(self):
+        #If I don't have a master or the opposing master is sitting on my throne
+        if self.gameState.endMessage:
+            return True
         return False
 
 
-    def minmax(self, depth: int, alpha: int, beta: int): 
-        
-        if depth == 0: #chldren List == empty => ending position 
-            return self.evaluate() + (self.checkIfGameOver() * 1000) #if game over +1000
-        if self.checkIfGameOver():
-            return self.evaluate() + 1000
-        
-        maxEval = -math.inf * self.minmaxIndex
-        for child in self.children:
+    def determineAndReturnBestMove(self) -> dict:
+        if self.isRoot:
+            if self.minmaxPlayerIndex == 1:
+                min_index = self.childrenScores.index(max(self.childrenScores))
+                childToMove = self.children[min_index]
+            else:
+                max_index = self.childrenScores.index(min(self.childrenScores))
+                childToMove = self.children[max_index]
+        return childToMove
 
-            evaluation = child.minmax(depth-1, alpha, beta, -1 * self.minmaxIndex)
-            maxEval = self.minmaxIndex * max(self.minmaxIndex * maxEval, self.minmaxIndex * evaluation)
+
+
+    def minmax(self, depth: int, alpha: int, beta: int): 
+        print()
+
+        print("Depth: ", depth)
+        if depth == 0: #chldren List == empty => tree leaf 
+            evaluation =  self.evaluate() + (self.checkIfGameOver() * (-1000)) #if game over -1000
+            print("--MoveLog: ", self.gameState.moveLog)
+            self.gameState.undoMove()
+            #print("Execution should be in here!")
+            return evaluation
+        if self.checkIfGameOver():
+            evaluation =  self.evaluate() - 1000
+            print("--MoveLog: ", self.gameState.moveLog)
+            self.gameState.undoMove()
+            return evaluation
+        #print("No depth == 0 or gameOver")
+        maxEval = -math.inf * self.minmaxPlayerIndex
+        #print("Children: ")
+        #print(self.children)
+        for child in self.children:
+            #1. Make move game.movePawn()_____
+            #2. give card  player.sendCard()  |
+            #3. recieve cardout __|           |
+            #4. activePlayerIndex change______|
+
+            #Methods to handle making move and create next node#########################################
+            cardName = list(child.keys())[0]                                                           #
+            startCoords, endCoords = child[cardName]            
+            player = self.gameState.players[self.gameState.activePlayerIndex]
         
+            #print("Child: ", child)
+            #print("cards in player hand: ")
+            #for card in player.cards:
+            #    print("\t", card.name)
+            #print("cardName: ", cardName)
+            #print("card out before sending card: ", self.gameState.cardOut.name)
+            self.gameState.cardOut = player.sendCard(player.cards[player.getCardIndexByName(cardName)], self.gameState.cardOut) #
+            #print("card out after sending card: ", self.gameState.cardOut.name)
+            self.gameState.movePawn(startCoords, endCoords, cardName)
+            if depth == 1:                                  #
+                childNode = node(gameState=self.gameState, isLeaf=True)                                                 #
+                
+            childNode = node(gameState=self.gameState)                                                 #
+            
+            #Are not part of the algorithm #############################################################
+
+
+            evaluation = childNode.minmax(depth-1, alpha, beta)
+            print("depth: ", depth)
+            maxEval = self.minmaxPlayerIndex * max(self.minmaxPlayerIndex * maxEval, self.minmaxPlayerIndex * evaluation)
+            if self.isRoot:
+                self.childrenScores.append(maxEval)
+                return
             #alpha beta pruning
-            if self.minmaxIndex == 1: #if maximizing player
+            if self.minmaxPlayerIndex == 1: #if maximizing player
                 alpha = max(alpha, evaluation)
                 if beta <= alpha:
                     break
-            elif self.minmaxIndex == -1:
+            elif self.minmaxPlayerIndex == -1:
                 beta = min(beta, evaluation)
                 if beta <= alpha:
                     break
         
-        print(maxEval)
+        #print(maxEval)
+        print("--MoveLog: ", self.gameState.moveLog)
+        self.gameState.undoMove()
         return maxEval
 
-if __name__ == '__main__':
+"""if __name__ == '__main__':
 
     ch1 = node(1, 1)
     ch2 = node(1, -2)
     p = node(-1, 0, [ch1, ch2])
-    p.minmax(1, -math.inf, math.inf, -1)
+    p.minmax(1, -math.inf, math.inf)"""

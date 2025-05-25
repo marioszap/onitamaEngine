@@ -68,17 +68,17 @@ def engine(p1Type=0, p2Type=0) -> None:
             minmax = minMax(game)
             for card in game.players[p].cards:
                 card.active = False
-                print('deactivated')
+                #print('deactivated')
     
     minmax = minMax(game)
     validMoves = game.getPlayerValidMoves(game.firstPlayer)
-    for cardName in validMoves:
+    """for cardName in validMoves:
         print("\n",cardName, ': ', validMoves[cardName])
         for move in validMoves[cardName]:
             endCoords = validMoves[cardName][move]
             print("start coord: ", ast.literal_eval(move), end=', ')
             for endCoord in endCoords:
-                print("end coord: ",endCoord)   
+                print("end coord: ",endCoord)  """ 
 
     #print(x)
     #minmax.scoreEachMove(x, game.firstPlayerIdx, game.firstPlayer.name)
@@ -116,9 +116,18 @@ def engine(p1Type=0, p2Type=0) -> None:
                 if int(pTypes[game.activePlayerIndex]) == 0:
                     turnFinished = game.highlightSquares(screen, cardToPlay, player.name)
                 elif int(pTypes[game.activePlayerIndex]) == 1:
-                    #game.movePawn([0,0], [1,1])
-                    #minMaxPlayNextMove()
+
+                    root = node(game, True)
+                    root.minmax(5, -math.inf, math.inf)
+                    child = root.determineAndReturnBestMove()
+                    #child = root.children[childIndex]
+                    cardToPlayName = list(child.keys())[0]
+                    startCoords, endCoords = child[cardToPlayName]                                                   #
+                    game.movePawn([startCoords[1], startCoords[0]], [endCoords[1], endCoords[0]], cardToPlayName)
+                    print("move to make: ", startCoords, endCoords, "cardToPlayName: ", cardToPlayName)
+                    cardToPlay = game.getCardByName(cardToPlayName)
                     turnFinished = True
+
                 """elif int(pTypes[game.activePlayerIndex]) == 2:
                     game.movePawn([0,1], [1,1])
                     turnFinished = True"""
@@ -126,15 +135,16 @@ def engine(p1Type=0, p2Type=0) -> None:
             drawPawns(screen, game.board, (SCREEN_WIDTH-BOARD_HEIGHT)/2, (SCREEN_HEIGHT-BOARD_HEIGHT)/2)
 
             if turnFinished:
-                #game.activePlayerIndex = (game.activePlayerIndex + 1) % 2
                 game.playerTurn(pTypes)
                 player.unclickCards()
                 game.cardOut = player.sendCard(cardToPlay, game.cardOut)
+
                 #game.undoMove()
-                
+                #cardRarity(game.cardsInGame)
+                game.getPlayerValidMoves(game.players[game.activePlayerIndex])
+            
                 cardToPlay = None
                 turnFinished = False
-                print(game.moveLog)
 
         clock.tick(MAX_FPS)
         pygame.display.flip()
