@@ -54,9 +54,13 @@ def drawPawns(screen, board, stW, stH) -> None:
 
 
 def engine(p1Type=0, p2Type=0) -> None:
-    pygame.init()
+
+
     pTypes = [int(p1Type), int(p2Type)]
     game = initGame(pTypes)
+    #root = node(game, True)
+    pygame.init()
+
     clock = pygame.time.Clock()
     screen.fill(pygame.Color("white"))
     loadImages()
@@ -65,13 +69,11 @@ def engine(p1Type=0, p2Type=0) -> None:
 
     for p in range(len(pTypes)): #if player is played by AI deactivate their cards
         if pTypes[p]:
-            minmax = minMax(game)
             for card in game.players[p].cards:
                 card.active = False
                 #print('deactivated')
     
-    minmax = minMax(game)
-    validMoves = game.getPlayerValidMoves(game.firstPlayer)
+    #validMoves = game.getPlayerValidMoves(game.firstPlayer)
     """for cardName in validMoves:
         print("\n",cardName, ': ', validMoves[cardName])
         for move in validMoves[cardName]:
@@ -118,17 +120,18 @@ def engine(p1Type=0, p2Type=0) -> None:
                 elif int(pTypes[game.activePlayerIndex]) == 1:
 
                     root = node(game, True)
-                    root.minmax(5, -math.inf, math.inf)
+                    root.minmax(2, -math.inf, math.inf)
+                    root.randomMove()
                     child = root.determineAndReturnBestMove()
-                    #child = root.children[childIndex]
                     cardToPlayName = list(child.keys())[0]
-                    startCoords, endCoords = child[cardToPlayName]                                                   #
-                    game.movePawn([startCoords[1], startCoords[0]], [endCoords[1], endCoords[0]], cardToPlayName)
+                    startCoords, endCoords = child[cardToPlayName]
+                    print(child[cardToPlayName])                                                   
+                    game.movePawn(startCoords[::-1], endCoords[::-1], cardToPlayName)
                     print("move to make: ", startCoords, endCoords, "cardToPlayName: ", cardToPlayName)
                     cardToPlay = game.getCardByName(cardToPlayName)
                     turnFinished = True
 
-                """elif int(pTypes[game.activePlayerIndex]) == 2:
+                    """elif int(pTypes[game.activePlayerIndex]) == 2:
                     game.movePawn([0,1], [1,1])
                     turnFinished = True"""
             
@@ -141,10 +144,11 @@ def engine(p1Type=0, p2Type=0) -> None:
 
                 #game.undoMove()
                 #cardRarity(game.cardsInGame)
-                game.getPlayerValidMoves(game.players[game.activePlayerIndex])
             
                 cardToPlay = None
                 turnFinished = False
+                game.getPlayerValidMoves(game.players[game.activePlayerIndex])
+
 
         clock.tick(MAX_FPS)
         pygame.display.flip()

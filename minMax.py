@@ -3,6 +3,8 @@ import json
 from engine import *
 import numpy as np
 import math
+from itertools import islice
+
 
 class minMax():
     def __init__(self, state: GameState) -> None:
@@ -143,10 +145,54 @@ class node(): #nodes represnt game states that occur after players' moves
         return score
 
 
-    def checkIfGameOver(self):
-        #If I don't have a master or the opposing master is sitting on my throne
-        if self.gameState.endMessage:
-            return True
+    def randomMove(self) -> list[list: int]:
+        validMoves = self.gameState.getPlayerValidMoves(self.gameState.players[self.gameState.activePlayerIndex])
+        print(validMoves)
+        randomCardName = random.choice(list(validMoves))
+        randomMove = random.choice(list(validMoves[randomCardName]))
+        print(validMoves[randomCardName])
+        print(type(ast.literal_eval(randomMove)), random.choice(validMoves[randomCardName][randomMove]))
+        return [ast.literal_eval(randomMove), random.choice(validMoves[randomCardName][randomMove])]
+
+
+    def checkIfGameOver(self) -> bool:
+        # if my throne in check AND cannot capture threatening opposing piece
+        me = self.gameState.players[self.gameState.activePlayerIndex]
+        opponent = self.gameState.players[(self.gameState.activePlayerIndex + 1) % 2]
+
+        myThrone = getattr(self.gameState, f"{me.name}Throne")[::-1]
+        for row in range(len(self.gameState.board)):
+            for column in range(len(self.gameState.board[row])):
+                if self.gameState.board[row][column] == me.name + 'M':
+                    myMaster = [column, row]
+
+
+        opponentMoves = self.gameState.getPlayerValidMoves(opponent, False)
+        opponentMoves = keepMoves(opponentMoves)
+        
+
+        squaresInDanger = self.gameState.getPlayerValidMoves(opponent, False, True) #call for other player
+
+
+        myThroneInCheck: bool = myThrone in squaresInDanger
+        myMasterInCheck: bool = myMaster in squaresInDanger
+
+        # if not myThroneInCheck and not myMasterInCheck:
+        #     return False
+        
+        if myThroneInCheck:
+            dangerousPawn = [ast.literal_eval(k) for k, v in opponentMoves.items() if myThrone in v][0]
+            if self.gameState.board[dangerousPawn[1]][dangerousPawn[0]][-1] == 'M':
+                return True
+        
+        myMoves = self.gameState.getPlayerValidMoves(me, True)
+        myMovesEndsquares = keepEndSquares(myMoves)
+        
+        if myMasterInCheck:
+            dangerousPawns = [ast.literal_eval(k) for k, v in opponentMoves.items() if myThrone in v]
+            if not str(myMaster) in myMoves.keys() and (len(dangerousPawns) > 1 or not dangerousPawns[0] in myMovesEndsquares):
+                return True
+
         return False
 
 
@@ -168,13 +214,13 @@ class node(): #nodes represnt game states that occur after players' moves
         print("Depth: ", depth)
         if depth == 0: #chldren List == empty => tree leaf 
             evaluation =  self.evaluate() + (self.checkIfGameOver() * (-1000)) #if game over -1000
-            print("--MoveLog: ", self.gameState.moveLog)
+            print("--MoveLog depth 0: ", self.gameState.moveLog, "evaluation: ", evaluation)
             self.gameState.undoMove()
             #print("Execution should be in here!")
             return evaluation
         if self.checkIfGameOver():
             evaluation =  self.evaluate() - 1000
-            print("--MoveLog: ", self.gameState.moveLog)
+            print("--MoveLog depth 1: ", self.gameState.moveLog, "evaluation: ", evaluation)
             self.gameState.undoMove()
             return evaluation
         #print("No depth == 0 or gameOver")
@@ -200,7 +246,7 @@ class node(): #nodes represnt game states that occur after players' moves
             #print("card out before sending card: ", self.gameState.cardOut.name)
             self.gameState.cardOut = player.sendCard(player.cards[player.getCardIndexByName(cardName)], self.gameState.cardOut) #
             #print("card out after sending card: ", self.gameState.cardOut.name)
-            self.gameState.movePawn(startCoords, endCoords, cardName)
+            self.gameState.movePawn(startCoords[::-1], endCoords[::-1], cardName)
             if depth == 1:                                  #
                 childNode = node(gameState=self.gameState, isLeaf=True)                                                 #
                 
@@ -226,7 +272,7 @@ class node(): #nodes represnt game states that occur after players' moves
                     break
         
         #print(maxEval)
-        print("--MoveLog: ", self.gameState.moveLog)
+        print("--MoveLog: ", self.gameState.moveLog, "maxEval: ", maxEval)
         self.gameState.undoMove()
         return maxEval
 

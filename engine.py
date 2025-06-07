@@ -1,3 +1,4 @@
+import ast
 import random, os
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 import pygame
@@ -5,6 +6,7 @@ import math
 import itertools
 import sys
 import copy
+from collections import defaultdict
 
 n = 5
 COLORS = ['red', 'blue']
@@ -390,7 +392,7 @@ class GameState():
         screen.blit(text, textRect)
 
 
-    def getPlayerPawnCoords(self, playerName):
+    def getPlayerPawnCoords(self, playerName) -> list[list: int]:
         coords = []
         for line in range(len(self.board)):
             for row in range(len(self.board[line])):
@@ -398,12 +400,20 @@ class GameState():
                     coords.append([row, line])
         return coords
 
+    def getPlayerMaster(self, playerName) -> list[int]:
+        for line in range(len(self.board)):
+            for row in range(len(self.board[line])):
+                if self.board[line][row] == playerName + 'M':
+                    return [row, line]
 
     def getPlayerValidMoves(self, player: Player, lookForChecks=True, returnList = False):
         validMoves = {}
+        
         if lookForChecks:
-            squaresInDanger = self.getPlayerValidMoves([x for x in self.players if not player == x][0], False, True) #call for other player
-            #print(squaresInDanger)
+            opponentsMoves = self.getPlayerValidMoves([x for x in self.players if not player == x][0], False)
+            squaresInDanger = keepEndSquares(opponentsMoves)
+        #squaresInDanger = self.getPlayerValidMoves([x for x in self.players if not player == x][0], False, True) #call for other player
+
         for card in player.cards:
             validMoves[card.name] = {}
             pawnsInGame = self.getPlayerPawnCoords(player.name)
@@ -412,23 +422,92 @@ class GameState():
                 for move in card.moves:
                     if (move[0] + pawnCoords[0]) >= 0 and (move[0] + pawnCoords[0]) < n and \
                         (move[1] + pawnCoords[1]) >= 0 and (move[1] + pawnCoords[1]) < n: #if move is whithin game board boundaries
-                        if not self.board[move[1] + pawnCoords[1]][move[0] + pawnCoords[0]][:2] == player.name: #if there is no pawn of same color already there
+                        if (not self.board[move[1] + pawnCoords[1]][move[0] + pawnCoords[0]][:2] == player.name) or not lookForChecks: #if there is no pawn of same color already there
                             if self.board[pawnCoords[1]][pawnCoords[0]][-1] == 'M' and lookForChecks:
+                                print("Move: ", move)
+                                print("Master's move: ", pawnCoords, ", ", [pawnCoords[0]+move[0],pawnCoords[1]+move[1]])
                                 try:
                                     if self.board[move[1] + pawnCoords[1]][move[0] + pawnCoords[0]][2] == 'M':
-                                        #print('will hit master')
+                                        print('will hit master')
                                         validMoves[card.name][str(pawnCoords)].append([move[0] + pawnCoords[0], move[1] + pawnCoords[1]])
-                                except:
                                     if [move[0] + pawnCoords[0], move[1] + pawnCoords[1]] in squaresInDanger:
-                                        #print("conflict: ", move[0] + pawnCoords[0], move[1] + pawnCoords[1])
+                                        print("conflict: ", move[0] + pawnCoords[0], move[1] + pawnCoords[1])
                                         pass
                                     else:
-                                        #print("adding: ", move[0] + pawnCoords[0], move[1] + pawnCoords[1])
+                                        print("adding: ", pawnCoords, ", ", [pawnCoords[0]+move[0],pawnCoords[1]+move[1]])
+                                        validMoves[card.name][str(pawnCoords)].append([move[0] + pawnCoords[0], move[1] + pawnCoords[1]])
+                                
+                                except:
+                                    if [move[0] + pawnCoords[0], move[1] + pawnCoords[1]] in squaresInDanger:
+                                        print("conflict: ", move[0] + pawnCoords[0], move[1] + pawnCoords[1])
+                                        pass
+                                    else:
+                                        print("adding: ", pawnCoords, ", ", [pawnCoords[0]+move[0],pawnCoords[1]+move[1]])
                                         validMoves[card.name][str(pawnCoords)].append([move[0] + pawnCoords[0], move[1] + pawnCoords[1]])
                                 
                             else:
                                 validMoves[card.name][str(pawnCoords)].append([move[0] + pawnCoords[0], move[1] + pawnCoords[1]])
                 validMoves[card.name][str(pawnCoords)] = list(k for k,_ in itertools.groupby(validMoves[card.name][str(pawnCoords)]))
+
+        if not returnList: #Get rid of empty list instances like:  '[1,2]':[]
+                for key, value in validMoves.items():
+                    validMoves[key] = {k: v for k, v in value.items() if v}
+                
+                validMoves = {k: v for k, v in validMoves.items() if v}
+
+        if lookForChecks:
+            myThrone = getattr(self, f"{player.name}Throne")[::-1]
+            print("me: ", player.name)
+            print("myThrone: ", myThrone)
+            myMaster = self.getPlayerMaster(player.name)
+            print("myMaster: ", myMaster)
+
+            print("valid moves: ", validMoves)
+            print("opponsntsMoves",opponentsMoves)
+            print("Squares in danger: ", squaresInDanger)
+
+
+            #Make squares in danger per pawn. Now it's just end coordinates 
+
+            myThroneInCheck: bool = myThrone in squaresInDanger
+            myMasterInCheck: bool = myMaster in squaresInDanger
+
+            print("myThroneInCheck: ", myThroneInCheck)
+            print("myMasterInCheck: ", myMasterInCheck)
+
+            myMovesEndsquares = keepEndSquares(validMoves)
+
+            if myThroneInCheck:
+                print("1 keepMoves(opponentsMoves)", keepMoves(opponentsMoves))
+                dangerousPawn = [ast.literal_eval(k) for k, v in keepMoves(opponentsMoves).items() if myThrone == v]
+                #Throws error FIX
+                if self.board[dangerousPawn[1], dangerousPawn[0]][-1] == 'M':
+                    print("Throne done!")
+                    return None #If opposing master threatens throne its game over
+
+            if myMasterInCheck:
+                print("2 keepMoves(opponentsMoves)", keepMoves(opponentsMoves))
+
+                dangerousPawns = [ast.literal_eval(k) for k, v in keepMoves(opponentsMoves).items() if myMaster in v]
+                print("can move master: ", not str(myMaster) in keepMoves(validMoves))
+                print("can capture threatening piece: ",  not dangerousPawns[0] in myMovesEndsquares)
+                print("more than one piece threatening: ", len(dangerousPawns) > 1 )
+                if not str(myMaster) in keepMoves(validMoves) and ((len(dangerousPawns) > 1 or not dangerousPawns[0] in myMovesEndsquares)):
+                    print("Mate")
+                    return None
+                else: #Master in check but its salvageable
+                    #Keep only moves that save
+                    print("Check")
+                    # keep only master's moves and those that capture threatening piece
+                    """for cardName in validMoves:
+                        for move in validMoves[cardName]:
+                            print(move) """
+                    print("Saving moves: ",keepSavingMoves(validMoves, myMaster, dangerousPawns))
+                print()
+                print()
+
+
+
         if returnList:
             validMoves = list(validMoves.values())
             tempList = []
@@ -439,12 +518,56 @@ class GameState():
             tempList = [list(tupl) for tupl in {tuple(item) for item in tempList }] #drop duplicates
             validMoves = tempList
 
-        else:
-            for key, value in validMoves.items():
-                validMoves[key] = {k: v for k, v in value.items() if v}
-            
-            validMoves = {k: v for k, v in validMoves.items() if v}
-            #print("Valid Moves: ")
-            #print(validMoves)
+        
         return validMoves #format list: [[newCoordX, newCoordY], ...] keeps only end positions
                         #format dict: {card1Name: {'[pawnCoordX, pawnCoordY]': [newCoordX, newCoordY]], ... ,], '[otherPawnCoordX, otherPawnCoordY]'}}
+
+
+# Helper functions
+def keepMoves(movesByCards: dict) -> dict:
+    combined = defaultdict(list)
+
+    for card_moves in movesByCards.values():
+        for pawn, moves in card_moves.items():
+            combined[pawn].extend(moves)
+
+    for pawn in combined:
+        combined[pawn] = [list(x) for x in set(tuple(m) for m in combined[pawn])]
+
+    combined = dict(combined)
+    return combined
+
+
+def keepEndSquares(movesByCards: dict) -> list:
+    endSquares = []
+    movesOnly = keepMoves(movesByCards)
+    for startPosition in movesOnly:
+        endSquares.extend(movesOnly[startPosition])
+    return endSquares
+
+
+def keepSavingMoves(validMovesPrior, masterCoords=None, threateningPawnsCoords: list=[]):
+
+    start_str = str(masterCoords) if masterCoords else None
+    end_list = threateningPawnsCoords if len(threateningPawnsCoords) == 1 else []
+
+    filteredMoves = {}
+
+    for piece, moves in validMovesPrior.items():
+        new_moves = {}
+        for start, ends in moves.items():
+            if start == start_str:
+                new_moves[start] = ends
+            elif any(end in ends for end in end_list):
+                filtered_ends = [end for end in ends if end == threateningPawnsCoords[0]]
+                if start in new_moves:
+                    new_moves[start] += filtered_ends
+                else:
+                    new_moves[start] = filtered_ends
+                #Remove Any duplicates
+                #new_moves[start] = [list(t) for t in set(tuple(x) for x in new_moves[start])]
+
+        if new_moves:
+            filteredMoves[piece] = new_moves
+
+    return filteredMoves
