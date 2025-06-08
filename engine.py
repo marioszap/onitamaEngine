@@ -261,6 +261,7 @@ class GameState():
         squareHovered[0] = int((mousePosition[1] - self.stH) / SQ_SIZE)
 
         if self.clickArea.collidepoint(mousePosition):
+            
             if (self.board[squareHovered[0]][squareHovered[1]] != '--') and (self.board[squareHovered[0]][squareHovered[1]][:2] == playerName):
                 if pygame.mouse.get_pressed()[0]:
                     if self.clicked:
@@ -271,12 +272,17 @@ class GameState():
                     squareClicked = squareHovered
         if self.clicked:
             drawTransparentRect(screen, sqHighlightColor, (squareClicked[1]) * SQ_SIZE + self.stW, (squareClicked[0]) * SQ_SIZE + self.stH, SQ_SIZE, SQ_SIZE, 64)
+            if self.board[squareClicked[0]][squareClicked[1]][-1] == 'M':
+                dangerousSquares = self.getPlayerValidMoves(self.players[(self.activePlayerIndex + 1) % 2], False, True)
+                
+
             for i in range(len(card.moves)):
                 try:
                     sqToMove = [(squareClicked[1] + card.moves[i][0]), (squareClicked[0] + card.moves[i][1])]
                     sqToMoveCoords = [(squareClicked[1] + card.moves[i][0]) * SQ_SIZE + self.stW, (squareClicked[0] + card.moves[i][1]) * SQ_SIZE + self.stH]
                     if self.clickArea.collidepoint((sqToMoveCoords[0], sqToMoveCoords[1])) \
-                    and self.board[squareClicked[0]][squareClicked[1]][:2] != self.board[sqToMove[1]][sqToMove[0]][:2]:
+                    and self.board[squareClicked[0]][squareClicked[1]][:2] != self.board[sqToMove[1]][sqToMove[0]][:2] \
+                    and (self.board[squareClicked[0]][squareClicked[1]][2] != 'M' or not sqToMove in dangerousSquares):
                         drawTransparentRect(screen, sqHighlightColor, sqToMoveCoords[0], sqToMoveCoords[1], SQ_SIZE, SQ_SIZE, 64)
                         if pygame.Rect(sqToMoveCoords[0], sqToMoveCoords[1], SQ_SIZE, SQ_SIZE).collidepoint(mousePosition) and pygame.mouse.get_pressed()[0]:
                             self.movePawn(squareClicked, [squareClicked[0] + card.moves[i][1], squareClicked[1] + card.moves[i][0]], card.name)
