@@ -479,9 +479,10 @@ class GameState():
 
             if myThroneInCheck:
                 print("1 keepMoves(opponentsMoves)", keepMoves(opponentsMoves))
-                dangerousPawn = [ast.literal_eval(k) for k, v in keepMoves(opponentsMoves).items() if myThrone == v]
+                dangerousPawn = [ast.literal_eval(k) for k, v in keepMoves(opponentsMoves).items() if myThrone in v][0]
                 #Throws error FIX
-                if self.board[dangerousPawn[1], dangerousPawn[0]][-1] == 'M':
+                print(dangerousPawn)
+                if self.board[dangerousPawn[1]][dangerousPawn[0]][-1] == 'M':
                     print("Throne done!")
                     return None #If opposing master threatens throne its game over
 
@@ -502,7 +503,7 @@ class GameState():
                     """for cardName in validMoves:
                         for move in validMoves[cardName]:
                             print(move) """
-                    print("Saving moves: ",keepSavingMoves(validMoves, myMaster, dangerousPawns))
+                    validMoves = keepSavingMoves(validMoves, myMaster, dangerousPawns)
                 print()
                 print()
 
@@ -546,7 +547,7 @@ def keepEndSquares(movesByCards: dict) -> list:
     return endSquares
 
 
-def keepSavingMoves(validMovesPrior, masterCoords=None, threateningPawnsCoords: list=[]):
+def keepSavingMoves(validMovesPrior, masterCoords=None, threateningPawnsCoords: list=[]) -> dict:
 
     start_str = str(masterCoords) if masterCoords else None
     end_list = threateningPawnsCoords if len(threateningPawnsCoords) == 1 else []
@@ -564,9 +565,7 @@ def keepSavingMoves(validMovesPrior, masterCoords=None, threateningPawnsCoords: 
                     new_moves[start] += filtered_ends
                 else:
                     new_moves[start] = filtered_ends
-                #Remove Any duplicates
-                #new_moves[start] = [list(t) for t in set(tuple(x) for x in new_moves[start])]
-
+                
         if new_moves:
             filteredMoves[piece] = new_moves
 
