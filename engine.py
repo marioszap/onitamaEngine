@@ -288,6 +288,8 @@ class GameState():
                             self.movePawn(squareClicked, [squareClicked[0] + card.moves[i][1], squareClicked[1] + card.moves[i][0]], card.name)
                             self.clicked = False
                             return True
+                    elif sqToMove in dangerousSquares:
+                        drawTransparentRect(screen, 'black', sqToMoveCoords[0], sqToMoveCoords[1], SQ_SIZE, SQ_SIZE, 64)
                 except:
                     ...
 
