@@ -4,6 +4,7 @@ from engine import *
 import numpy as np
 import math
 from itertools import islice
+import pprint
 
 
 class minMax():
@@ -105,17 +106,17 @@ def cardRarity(cardsInGame: list[Card]) -> None:
 
 
 class node(): #nodes represnt game states that occur after players' moves
-    def __init__(self, gameState: GameState, isRoot = False, isLeaf = False):
+    def __init__(self, gameState: GameState, isRoot = False, isLeaf = False, isRootsChild = False):
         self.gameState = gameState
         self.children: list[dict] = []
         self.eval = 0
         self.minmaxPlayerIndex = toAbsOne(self.gameState.activePlayerIndex)
         self.isRoot = isRoot #First node to be created should be root
-        if isRoot:
-            self.childrenScores = []
+        
 
         self.validMoves = self.gameState.getPlayerValidMoves(self.gameState.players[self.gameState.activePlayerIndex])  
-        
+        if self.isRoot:
+            self.move = []
         """for cardName in self.validMoves:
             print("\n",cardName, ': ', self.validMoves[cardName])
             for move in self.validMoves[cardName]:
@@ -130,7 +131,8 @@ class node(): #nodes represnt game states that occur after players' moves
                     startCoord = ast.literal_eval(move)
                     for endCoord in endCoords:
                         self.children.append({cardName : [startCoord, endCoord]})
-
+        else:
+            self.children = None
 
 
     def evaluate(self) -> float: #move: [[startingX, startingY], [endingX, endingY]]
@@ -155,112 +157,81 @@ class node(): #nodes represnt game states that occur after players' moves
         return [ast.literal_eval(randomMove), random.choice(validMoves[randomCardName][randomMove])]
 
 
-    def checkIfGameOver(self) -> bool:
-        # if my throne in check AND cannot capture threatening opposing piece
-        me = self.gameState.players[self.gameState.activePlayerIndex]
-        opponent = self.gameState.players[(self.gameState.activePlayerIndex + 1) % 2]
-
-        myThrone = getattr(self.gameState, f"{me.name}Throne")[::-1]
-        for row in range(len(self.gameState.board)):
-            for column in range(len(self.gameState.board[row])):
-                if self.gameState.board[row][column] == me.name + 'M':
-                    myMaster = [column, row]
-
-
-        opponentMoves = self.gameState.getPlayerValidMoves(opponent, False)
-        opponentMoves = keepMoves(opponentMoves)
-        
-
-        squaresInDanger = self.gameState.getPlayerValidMoves(opponent, False, True) #call for other player
-
-
-        myThroneInCheck: bool = myThrone in squaresInDanger
-        myMasterInCheck: bool = myMaster in squaresInDanger
-
-        # if not myThroneInCheck and not myMasterInCheck:
-        #     return False
-        
-        if myThroneInCheck:
-            dangerousPawn = [ast.literal_eval(k) for k, v in opponentMoves.items() if myThrone in v][0]
-            if self.gameState.board[dangerousPawn[1]][dangerousPawn[0]][-1] == 'M':
-                return True
-        
-        myMoves = self.gameState.getPlayerValidMoves(me, True)
-        myMovesEndsquares = keepEndSquares(myMoves)
-        
-        if myMasterInCheck:
-            dangerousPawns = [ast.literal_eval(k) for k, v in opponentMoves.items() if myThrone in v]
-            if not str(myMaster) in myMoves.keys() and (len(dangerousPawns) > 1 or not dangerousPawns[0] in myMovesEndsquares):
-                return True
-
-        return False
-
-
     def determineAndReturnBestMove(self) -> dict:
         if self.isRoot:
             if self.minmaxPlayerIndex == 1:
-                min_index = self.childrenScores.index(max(self.childrenScores))
-                childToMove = self.children[min_index]
+                best_score = max(move['score'] for move in self.children)
             else:
-                max_index = self.childrenScores.index(min(self.childrenScores))
-                childToMove = self.children[max_index]
-        return childToMove
+                best_score = min(move['score'] for move in self.children)
+            print("Children: ", self.children)
+            print("Best score: ", best_score, "player minmaxIdx: ", self.minmaxPlayerIndex)
+            best_moves = [move for move in self.children if move['score'] == best_score]
+            return random.choice(best_moves)
+        
 
 
 
     def minmax(self, depth: int, alpha: int, beta: int): 
-        print()
+        #print()
 
-        print("Depth: ", depth)
-        if depth == 0: #chldren List == empty => tree leaf 
-            evaluation =  self.evaluate() + (self.checkIfGameOver() * (-1000)) #if game over -1000
-            print("--MoveLog depth 0: ", self.gameState.moveLog, "evaluation: ", evaluation)
+        
+        if depth == 0:  #tree leaf
+            evaluation =  self.evaluate() + ((self.children == []) * -1000 * self.minmaxPlayerIndex) #if game over -1000
             self.gameState.undoMove()
-            #print("Execution should be in here!")
+            #print("Evaluation: ", evaluation)
             return evaluation
-        if self.checkIfGameOver():
-            evaluation =  self.evaluate() - 1000
-            print("--MoveLog depth 1: ", self.gameState.moveLog, "evaluation: ", evaluation)
+        elif self.children == []: #chldren List == empty => no available moves 
+            evaluation =  self.evaluate() - 1000 * self.minmaxPlayerIndex
+            #print("Evaluation: ", evaluation)
+            
             self.gameState.undoMove()
             return evaluation
-        #print("No depth == 0 or gameOver")
+
         maxEval = -math.inf * self.minmaxPlayerIndex
-        #print("Children: ")
-        #print(self.children)
-        for child in self.children:
+        
+        for i in range(len(self.children)):
             #1. Make move game.movePawn()_____
             #2. give card  player.sendCard()  |
             #3. recieve cardout __|           |
             #4. activePlayerIndex change______|
 
+            #print("Child: ", self.children[i])
             #Methods to handle making move and create next node#########################################
-            cardName = list(child.keys())[0]                                                           #
-            startCoords, endCoords = child[cardName]            
+            cardName = list(self.children[i].keys())[0]                                                           #
+            startCoords, endCoords = self.children[i][cardName]            
             player = self.gameState.players[self.gameState.activePlayerIndex]
         
-            #print("Child: ", child)
-            #print("cards in player hand: ")
-            #for card in player.cards:
-            #    print("\t", card.name)
-            #print("cardName: ", cardName)
-            #print("card out before sending card: ", self.gameState.cardOut.name)
             self.gameState.cardOut = player.sendCard(player.cards[player.getCardIndexByName(cardName)], self.gameState.cardOut) #
-            #print("card out after sending card: ", self.gameState.cardOut.name)
+
             self.gameState.movePawn(startCoords[::-1], endCoords[::-1], cardName)
+
             if depth == 1:                                  #
-                childNode = node(gameState=self.gameState, isLeaf=True)                                                 #
-                
-            childNode = node(gameState=self.gameState)                                                 #
+                childNode = node(gameState=self.gameState, isLeaf=True)
+            elif self.isRoot:
+                childNode = node(gameState=self.gameState, isRootsChild=True)
+            else:                                            #
+                childNode = node(gameState=self.gameState)
             
             #Are not part of the algorithm #############################################################
 
 
             evaluation = childNode.minmax(depth-1, alpha, beta)
-            print("depth: ", depth)
+            #print("depth: ", depth)
             maxEval = self.minmaxPlayerIndex * max(self.minmaxPlayerIndex * maxEval, self.minmaxPlayerIndex * evaluation)
-            if self.isRoot:
-                self.childrenScores.append(maxEval)
-                return
+            if maxEval != 0:
+                print("child: ", self.children[i])
+                if self.minmaxPlayerIndex > 0:
+                    print("Depth: ", depth)
+                    print("Maximizing Player: ", self.minmaxPlayerIndex, end=" ")
+                else:
+                    print("Depth: ", depth)
+                    print('Minimizing Player: ', self.minmaxPlayerIndex, end=" ")
+                print("Between: ", self.minmaxPlayerIndex * self.minmaxPlayerIndex * maxEval, " and ", self.minmaxPlayerIndex *self.minmaxPlayerIndex * evaluation)
+                print("Chose: ", maxEval)
+                print()
+            self.children[i]["score"] = maxEval
+            
+                
             #alpha beta pruning
             if self.minmaxPlayerIndex == 1: #if maximizing player
                 alpha = max(alpha, evaluation)
@@ -272,9 +243,80 @@ class node(): #nodes represnt game states that occur after players' moves
                     break
         
         #print(maxEval)
-        print("--MoveLog: ", self.gameState.moveLog, "maxEval: ", maxEval)
+
         self.gameState.undoMove()
         return maxEval
+
+def evaluate(gameState:GameState): #move: [[startingX, startingY], [endingX, endingY]]
+    board = gameState.board
+    score = 0
+    for row in board:
+        for square in row:
+            if square[1] == '1':
+                score -= 10
+            elif square[1] == '2':
+                score += 10
+    return score
+
+
+def startMinMax(gameState: GameState, MAX_DEPTH):
+    global nextMove
+    minmax2(gameState, MAX_DEPTH, MAX_DEPTH)
+    return nextMove
+
+
+def minmax2(gameState: GameState, depth: int, MAX_DEPTH):
+    if depth == 0:
+        print("Eval: ", evaluate(gameState))
+        return evaluate(gameState)
+    global nextMove
+    
+    player = gameState.players[gameState.activePlayerIndex]
+    validMoves = gameState.getPlayerValidMoves(player)
+
+    if gameState.activePlayerIndex == 1: #max
+        maxScore = -1000
+        for cardName in validMoves:
+            card = gameState.getCardByName(cardName)
+            for move in validMoves[cardName]:
+                startCoords = ast.literal_eval(move)
+                for endCoords in validMoves[cardName][move]:
+                    gameState.cardOut = player.sendCard(card, gameState.cardOut)
+
+                    gameState.movePawn(startCoords[::-1], endCoords[::-1], cardName)
+                    score = minmax2(gameState, depth-1, MAX_DEPTH)
+                    print("depth: ", depth, "score: ", score, "maxScore: ", maxScore)
+                    if score >= maxScore:
+                        maxScore = score
+                        print("In here")
+                        if depth == MAX_DEPTH:
+                            print("Next added", {cardName: [startCoords, endCoords]})
+                            nextMove = {cardName: [startCoords, endCoords]}
+                    gameState.undoMove()
+        return maxScore
+
+    else:
+        minScore = 1000
+        for cardName in validMoves:
+            card = gameState.getCardByName(cardName)
+            for move in validMoves[cardName]:
+                startCoords = ast.literal_eval(move)
+                for endCoords in validMoves[cardName][move]:
+                    gameState.movePawn(startCoords[::-1], endCoords[::-1], cardName)
+                    gameState.cardOut = player.sendCard(card, gameState.cardOut)
+                    score = minmax2(gameState, depth-1, MAX_DEPTH)
+                    print("depth: ", depth, "score: ", score, "maxScore: ", minScore)
+
+                    if score <= minScore:
+                        minScore = score
+                        print("In here")
+
+                        if depth == MAX_DEPTH:
+                            print("Next added", {cardName: [startCoords, endCoords]})
+
+                            nextMove = {cardName: [startCoords, endCoords]}
+                    gameState.undoMove()
+        return minScore
 
 """if __name__ == '__main__':
 

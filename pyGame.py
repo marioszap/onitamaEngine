@@ -120,20 +120,24 @@ def engine(p1Type=0, p2Type=0) -> None:
                 elif int(pTypes[game.activePlayerIndex]) == 1:
 
                     root = node(game, True)
-                    root.minmax(2, -math.inf, math.inf)
-                    root.randomMove()
+                    root.minmax(1, -math.inf, math.inf)
+                    #root.randomMove()
                     child = root.determineAndReturnBestMove()
                     cardToPlayName = list(child.keys())[0]
                     startCoords, endCoords = child[cardToPlayName]
-                    print(child[cardToPlayName])                                                   
+                    #print(child[cardToPlayName])                                                   
                     game.movePawn(startCoords[::-1], endCoords[::-1], cardToPlayName)
                     print("move to make: ", startCoords, endCoords, "cardToPlayName: ", cardToPlayName)
                     cardToPlay = game.getCardByName(cardToPlayName)
                     turnFinished = True
 
-                    """elif int(pTypes[game.activePlayerIndex]) == 2:
-                    game.movePawn([0,1], [1,1])
-                    turnFinished = True"""
+                elif int(pTypes[game.activePlayerIndex]) == 2:
+                    move: dict = startMinMax(game, 3)
+                    cardToPlayName = list(move.keys())[0]
+                    cardToPlay = game.getCardByName(cardToPlayName)
+                    game.movePawn(move[cardToPlayName][0][::-1], move[cardToPlayName][1][::-1], cardToPlayName)
+                    turnFinished = True
+
             
             drawPawns(screen, game.board, (SCREEN_WIDTH-BOARD_HEIGHT)/2, (SCREEN_HEIGHT-BOARD_HEIGHT)/2)
 

@@ -288,7 +288,7 @@ class GameState():
                             self.movePawn(squareClicked, [squareClicked[0] + card.moves[i][1], squareClicked[1] + card.moves[i][0]], card.name)
                             self.clicked = False
                             return True
-                    elif sqToMove in dangerousSquares:
+                    elif sqToMove in dangerousSquares and self.board[squareClicked[0]][squareClicked[1]][:2] != self.board[sqToMove[1]][sqToMove[0]][:2]:
                         drawTransparentRect(screen, 'black', sqToMoveCoords[0], sqToMoveCoords[1], SQ_SIZE, SQ_SIZE, 64)
                 except:
                     ...
@@ -318,11 +318,10 @@ class GameState():
 
     def undoMove(self) -> None:
         #Task: Add to movelog captures in order to respawn pawns when move that captures is undone
+
         lastMove = self.moveLog[-1][next(iter(self.moveLog[-1]))]
         nameOfCardToGive = list(self.moveLog[-2].keys())[0].split('_')[0]
         pawnToRespawn = list(self.moveLog[-1].keys())[0].split('_')[2]
-        print("lastMove: ",self.moveLog[-1])
-        print("PawnToRespawn: ", pawnToRespawn)
         
 
         [startSquare, endSquare] = lastMove
@@ -332,10 +331,11 @@ class GameState():
         self.playerTurn()
         if pawnToRespawn != '--':
             self.board[endSquare[0]][endSquare[1]] = pawnToRespawn
-        for card in self.players[self.activePlayerIndex].cards:
-            print(card.name)
+        """for card in self.players[self.activePlayerIndex].cards:
+            print(card.name)"""
         cardIndex = self.players[self.activePlayerIndex].getCardIndexByName(nameOfCardToGive)
 
+        #print("CardIndex: ", cardIndex)
         self.players[self.activePlayerIndex].cards[cardIndex].swapHeightWithWidth()
         for i in range(3):
             self.players[self.activePlayerIndex].cards[cardIndex].swapCoordinates()
@@ -432,25 +432,25 @@ class GameState():
                         (move[1] + pawnCoords[1]) >= 0 and (move[1] + pawnCoords[1]) < n: #if move is whithin game board boundaries
                         if (not self.board[move[1] + pawnCoords[1]][move[0] + pawnCoords[0]][:2] == player.name) or not lookForChecks: #if there is no pawn of same color already there
                             if self.board[pawnCoords[1]][pawnCoords[0]][-1] == 'M' and lookForChecks:
-                                print("Move: ", move)
-                                print("Master's move: ", pawnCoords, ", ", [pawnCoords[0]+move[0],pawnCoords[1]+move[1]])
+                                # print("Move: ", move)
+                                # print("Master's move: ", pawnCoords, ", ", [pawnCoords[0]+move[0],pawnCoords[1]+move[1]])
                                 try:
                                     if self.board[move[1] + pawnCoords[1]][move[0] + pawnCoords[0]][2] == 'M':
-                                        print('will hit master')
+                                        #print('will hit master')
                                         validMoves[card.name][str(pawnCoords)].append([move[0] + pawnCoords[0], move[1] + pawnCoords[1]])
                                     if [move[0] + pawnCoords[0], move[1] + pawnCoords[1]] in squaresInDanger:
-                                        print("conflict: ", move[0] + pawnCoords[0], move[1] + pawnCoords[1])
+                                        #print("conflict: ", move[0] + pawnCoords[0], move[1] + pawnCoords[1])
                                         pass
                                     else:
-                                        print("adding: ", pawnCoords, ", ", [pawnCoords[0]+move[0],pawnCoords[1]+move[1]])
+                                        #print("adding: ", pawnCoords, ", ", [pawnCoords[0]+move[0],pawnCoords[1]+move[1]])
                                         validMoves[card.name][str(pawnCoords)].append([move[0] + pawnCoords[0], move[1] + pawnCoords[1]])
                                 
                                 except:
                                     if [move[0] + pawnCoords[0], move[1] + pawnCoords[1]] in squaresInDanger:
-                                        print("conflict: ", move[0] + pawnCoords[0], move[1] + pawnCoords[1])
+                                        #print("conflict: ", move[0] + pawnCoords[0], move[1] + pawnCoords[1])
                                         pass
                                     else:
-                                        print("adding: ", pawnCoords, ", ", [pawnCoords[0]+move[0],pawnCoords[1]+move[1]])
+                                        #print("adding: ", pawnCoords, ", ", [pawnCoords[0]+move[0],pawnCoords[1]+move[1]])
                                         validMoves[card.name][str(pawnCoords)].append([move[0] + pawnCoords[0], move[1] + pawnCoords[1]])
                                 
                             else:
@@ -465,14 +465,14 @@ class GameState():
 
         if lookForChecks:
             myThrone = getattr(self, f"{player.name}Throne")[::-1]
-            print("me: ", player.name)
-            print("myThrone: ", myThrone)
+            # print("me: ", player.name)
+            # print("myThrone: ", myThrone)
             myMaster = self.getPlayerMaster(player.name)
-            print("myMaster: ", myMaster)
+            # print("myMaster: ", myMaster)
 
-            print("valid moves: ", validMoves)
-            print("opponsntsMoves",opponentsMoves)
-            print("Squares in danger: ", squaresInDanger)
+            # print("valid moves: ", validMoves)
+            # print("opponsntsMoves",opponentsMoves)
+            # print("Squares in danger: ", squaresInDanger)
 
 
             #Make squares in danger per pawn. Now it's just end coordinates 
@@ -480,42 +480,37 @@ class GameState():
             myThroneInCheck: bool = myThrone in squaresInDanger
             myMasterInCheck: bool = myMaster in squaresInDanger
 
-            print("myThroneInCheck: ", myThroneInCheck)
-            print("myMasterInCheck: ", myMasterInCheck)
+            # print("myThroneInCheck: ", myThroneInCheck)
+            # print("myMasterInCheck: ", myMasterInCheck)
 
             myMovesEndsquares = keepEndSquares(validMoves)
 
             if myThroneInCheck:
-                print("1 keepMoves(opponentsMoves)", keepMoves(opponentsMoves))
+                # print("1 keepMoves(opponentsMoves)", keepMoves(opponentsMoves))
                 dangerousPawn = [ast.literal_eval(k) for k, v in keepMoves(opponentsMoves).items() if myThrone in v][0]
                 #Throws error FIX
-                print(dangerousPawn)
+                # print(dangerousPawn)
                 if self.board[dangerousPawn[1]][dangerousPawn[0]][-1] == 'M':
                     print("Throne done!")
-                    return None #If opposing master threatens throne its game over
+                    return [] #If opposing master threatens throne its game over
 
             if myMasterInCheck:
-                print("2 keepMoves(opponentsMoves)", keepMoves(opponentsMoves))
+                # print("2 keepMoves(opponentsMoves)", keepMoves(opponentsMoves))
 
                 dangerousPawns = [ast.literal_eval(k) for k, v in keepMoves(opponentsMoves).items() if myMaster in v]
-                print("can move master: ", not str(myMaster) in keepMoves(validMoves))
-                print("can capture threatening piece: ",  not dangerousPawns[0] in myMovesEndsquares)
-                print("more than one piece threatening: ", len(dangerousPawns) > 1 )
+                # print("can move master: ", not str(myMaster) in keepMoves(validMoves))
+                # print("can capture threatening piece: ",  not dangerousPawns[0] in myMovesEndsquares)
+                # print("more than one piece threatening: ", len(dangerousPawns) > 1 )
                 if not str(myMaster) in keepMoves(validMoves) and ((len(dangerousPawns) > 1 or not dangerousPawns[0] in myMovesEndsquares)):
                     print("Mate")
-                    return None
+                    return []
                 else: #Master in check but its salvageable
                     #Keep only moves that save
-                    print("Check")
+                    #print("Check")
                     # keep only master's moves and those that capture threatening piece
-                    """for cardName in validMoves:
-                        for move in validMoves[cardName]:
-                            print(move) """
                     validMoves = keepSavingMoves(validMoves, myMaster, dangerousPawns)
-                print()
-                print()
-
-
+                    #print(validMoves)
+                #print()
 
         if returnList:
             validMoves = list(validMoves.values())
@@ -527,7 +522,6 @@ class GameState():
             tempList = [list(tupl) for tupl in {tuple(item) for item in tempList }] #drop duplicates
             validMoves = tempList
 
-        
         return validMoves #format list: [[newCoordX, newCoordY], ...] keeps only end positions
                         #format dict: {card1Name: {'[pawnCoordX, pawnCoordY]': [newCoordX, newCoordY]], ... ,], '[otherPawnCoordX, otherPawnCoordY]'}}
 
