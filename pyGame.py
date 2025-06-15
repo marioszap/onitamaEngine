@@ -117,21 +117,8 @@ def engine(p1Type=0, p2Type=0) -> None:
             if not cardToPlay is None:
                 if int(pTypes[game.activePlayerIndex]) == 0:
                     turnFinished = game.highlightSquares(screen, cardToPlay, player.name)
+
                 elif int(pTypes[game.activePlayerIndex]) == 1:
-
-                    root = node(game, True)
-                    root.minmax(1, -math.inf, math.inf)
-                    #root.randomMove()
-                    child = root.determineAndReturnBestMove()
-                    cardToPlayName = list(child.keys())[0]
-                    startCoords, endCoords = child[cardToPlayName]
-                    #print(child[cardToPlayName])                                                   
-                    game.movePawn(startCoords[::-1], endCoords[::-1], cardToPlayName)
-                    print("move to make: ", startCoords, endCoords, "cardToPlayName: ", cardToPlayName)
-                    cardToPlay = game.getCardByName(cardToPlayName)
-                    turnFinished = True
-
-                elif int(pTypes[game.activePlayerIndex]) == 2:
                     move: dict = startMinMax(game, 3)
                     cardToPlayName = list(move.keys())[0]
                     cardToPlay = game.getCardByName(cardToPlayName)

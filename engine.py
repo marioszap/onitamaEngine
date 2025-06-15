@@ -152,6 +152,7 @@ class Player():
         else:
             cardOutStPoint = [((SCREEN_WIDTH-BOARD_HEIGHT)/2-CARD_HEIGHT+4*smallOffset)/2 + BOARD_WIDTH + 2*bigOffset + CARD_HEIGHT,
                                 SCREEN_WIDTH/2 + BOARD_HEIGHT/2 - SQ_SIZE/2 - smallOffset - CARD_LENGTH]
+        
         idx = self.cards.index(card)
         playedCardCoords = self.cards[idx].stPoint
 
@@ -503,7 +504,7 @@ class GameState():
                 # print("more than one piece threatening: ", len(dangerousPawns) > 1 )
                 if not str(myMaster) in keepMoves(validMoves) and ((len(dangerousPawns) > 1 or not dangerousPawns[0] in myMovesEndsquares)):
                     print("Mate")
-                    return []
+                    return "Mate"
                 else: #Master in check but its salvageable
                     #Keep only moves that save
                     #print("Check")
