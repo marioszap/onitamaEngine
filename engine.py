@@ -492,7 +492,7 @@ class GameState():
                 #Throws error FIX
                 # print(dangerousPawn)
                 if self.board[dangerousPawn[1]][dangerousPawn[0]][-1] == 'M':
-                    print("Throne done!")
+                    #print("Throne done!")
                     return [] #If opposing master threatens throne its game over
 
             if myMasterInCheck:
@@ -503,7 +503,7 @@ class GameState():
                 # print("can capture threatening piece: ",  not dangerousPawns[0] in myMovesEndsquares)
                 # print("more than one piece threatening: ", len(dangerousPawns) > 1 )
                 if not str(myMaster) in keepMoves(validMoves) and ((len(dangerousPawns) > 1 or not dangerousPawns[0] in myMovesEndsquares)):
-                    print("Mate")
+                    #print("Mate")
                     return "Mate"
                 else: #Master in check but its salvageable
                     #Keep only moves that save

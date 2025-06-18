@@ -84,7 +84,7 @@ class ZobristHashing():
 
 
 
-def evaluate(gameState:GameState): #move: [[startingX, startingY], [endingX, endingY]]
+def evaluate(gameState: GameState): #move: [[startingX, startingY], [endingX, endingY]]
     board = gameState.board
     score = 0
     for row in range(len(board)):
@@ -100,16 +100,39 @@ def evaluate(gameState:GameState): #move: [[startingX, startingY], [endingX, end
     return score
 
 
-def startMinMax(gameState: GameState, MAX_DEPTH: int):
+def evaluate(gameState: GameState):
+    board = gameState.board
+    score = 0
+    for row in range(len(board)):
+        for column in range(len(board[row])):
+            if board[row][column] == "p1M" and gameState.p2Throne == [row, column]:
+                return -1000
+            elif board[row][column] == "p2M" and gameState.p1Throne == [row, column]:
+                return 1000
+            elif board[row][column][1] == '1':
+                score -= 10
+            elif board[row][column][1] == '2':
+                score += 10
+    return score
+
+
+def findNextMove(gameState: GameState, MAX_DEPTH: int, algorithm: str = 'minMax', alpha_beta: bool = True):
     global nextMove
-    minmax(gameState, MAX_DEPTH, MAX_DEPTH, -math.inf, math.inf)
+    if algorithm == "minMax":
+        minmax(gameState, MAX_DEPTH, -math.inf * alpha_beta, math.inf * alpha_beta, MAX_DEPTH)
+    elif algorithm == "negaMax":
+        turnSign = toAbsOne(gameState.activePlayerIndex)
+        negaMax(gameState, MAX_DEPTH, turnSign, -math.inf * alpha_beta, math.inf * alpha_beta, MAX_DEPTH)
     return nextMove
 
 
-def minmax(gameState: GameState, depth: int, MAX_DEPTH: int, alpha: float, beta: float):
+def minmax(gameState: GameState, depth: int, alpha: int, beta: int, MAX_DEPTH: int = None, _state={'last': None}) -> int:
     if depth == 0:
         return evaluate(gameState)
     global nextMove
+
+    if MAX_DEPTH is None:
+        MAX_DEPTH = _state['last']
     
     player = gameState.players[gameState.activePlayerIndex]
     validMoves = gameState.getPlayerValidMoves(player)
@@ -129,17 +152,16 @@ def minmax(gameState: GameState, depth: int, MAX_DEPTH: int, alpha: float, beta:
                     gameState.cardOut = player.sendCard(card, gameState.cardOut)
 
                     gameState.movePawn(startCoords[::-1], endCoords[::-1], cardName)
-                    score = minmax(gameState, depth-1, MAX_DEPTH, alpha, beta)
+                    score = minmax(gameState, depth-1, alpha, beta)
                     gameState.undoMove()
                     if score >= maxScore:
                         maxScore = score
                         if depth == MAX_DEPTH:
-                            print("Next added", {cardName: [startCoords, endCoords]})
                             nextMove = {cardName: [startCoords, endCoords]}
-                            
-                    alpha = max(alpha, score)
-                    if beta <= alpha:
-                        return maxScore
+                    if not math.isnan(alpha):        
+                        alpha = max(alpha, score)
+                        if beta <= alpha:
+                            return maxScore
         return maxScore
 
     else:
@@ -155,22 +177,60 @@ def minmax(gameState: GameState, depth: int, MAX_DEPTH: int, alpha: float, beta:
                 for endCoords in validMoves[cardName][move]:
                     gameState.movePawn(startCoords[::-1], endCoords[::-1], cardName)
                     gameState.cardOut = player.sendCard(card, gameState.cardOut)
-                    score = minmax(gameState, depth-1, MAX_DEPTH, alpha, beta)
+                    score = minmax(gameState, depth-1, alpha, beta)
                     gameState.undoMove()
                     if score <= minScore:
                         minScore = score
-
                         if depth == MAX_DEPTH:
-                            print("Next added", {cardName: [startCoords, endCoords]})
-
                             nextMove = {cardName: [startCoords, endCoords]}
-
-                    beta = min(beta, score)
-                    if beta <= alpha:
-                        return minScore
+                    if not math.isnan(alpha):        
+                        beta = min(beta, score)
+                        if beta <= alpha:
+                            return minScore
 
         return minScore
 
+def negaMax(gameState: GameState, depth: int, turnSign: int, alpha: int, beta: int, MAX_DEPTH: int = None, _state={'last': None}) -> int:
+    if depth == 0:
+        return turnSign * evaluate(gameState)
+    
+    if MAX_DEPTH is None:
+        MAX_DEPTH = _state['last']
+    
+    global nextMove
+
+    player = gameState.players[gameState.activePlayerIndex]
+    opponent = gameState.players[(gameState.activePlayerIndex + 1) % 2]
+    validMoves = gameState.getPlayerValidMoves(player)
+
+    if validMoves == 'Mate':
+        return -1000
+
+    maxScore = -1000
+
+    for cardName in validMoves:
+        card = gameState.getCardByName(cardName)
+        
+        for move in validMoves[cardName]:
+            startCoords = ast.literal_eval(move)
+            for endCoords in validMoves[cardName][move]:
+                gameState.movePawn(startCoords[::-1], endCoords[::-1], cardName)
+                gameState.cardOut = player.sendCard(card, gameState.cardOut)
+
+                score = -negaMax(gameState, depth - 1, -turnSign, -beta, -alpha)
+                gameState.undoMove()
+
+                if score >= maxScore:
+                    maxScore = score
+                    if depth == MAX_DEPTH:
+                        nextMove = {cardName: [startCoords, endCoords]}
+                if not math.isnan(alpha):        
+                    if maxScore > alpha:
+                        alpha = maxScore
+                    if beta <= alpha:
+                        break
+
+    return maxScore
 
 """if __name__ == '__main__':
 

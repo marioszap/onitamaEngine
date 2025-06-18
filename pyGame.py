@@ -6,7 +6,7 @@ from engine import *
 from minMax import *
 import random
 import sys
-import ast
+import time
 
 MAX_FPS = 10
 IMAGES = {}
@@ -72,20 +72,16 @@ def engine(p1Type=0, p2Type=0) -> None:
             for card in game.players[p].cards:
                 card.active = False
                 #print('deactivated')
-    
-    #validMoves = game.getPlayerValidMoves(game.firstPlayer)
-    """for cardName in validMoves:
-        print("\n",cardName, ': ', validMoves[cardName])
-        for move in validMoves[cardName]:
-            endCoords = validMoves[cardName][move]
-            print("start coord: ", ast.literal_eval(move), end=', ')
-            for endCoord in endCoords:
-                print("end coord: ",endCoord)  """ 
 
-    #print(x)
-    #minmax.scoreEachMove(x, game.firstPlayerIdx, game.firstPlayer.name)
 
+    algorithmMovesMade = 0
     while running:
+
+        try:
+            validMoves
+        except NameError:
+            validMoves = None
+        
         for e in pygame.event.get():
             if e.type == pygame.QUIT:
                 running = False
@@ -97,7 +93,7 @@ def engine(p1Type=0, p2Type=0) -> None:
 
         player = game.players[game.activePlayerIndex]
         inactivePlayer = game.players[(game.activePlayerIndex + 1) % 2]
-        if game.endMessage:
+        if game.endMessage or validMoves == 'Mate':
             game.drawEndScreen(game.endMessage)
             for e in pygame.event.get():
                 if pygame.key.get_pressed():
@@ -119,7 +115,25 @@ def engine(p1Type=0, p2Type=0) -> None:
                     turnFinished = game.highlightSquares(screen, cardToPlay, player.name)
 
                 elif int(pTypes[game.activePlayerIndex]) == 1:
-                    move: dict = startMinMax(game, 3)
+                    if(algorithmMovesMade == 0):
+                        elapsedTime = 0
+                        movesDurations = []
+                        depth = 5
+                        print()
+                        print(f"For depth {depth}:")
+                    start = time.perf_counter()
+                    move: dict = findNextMove(game, depth, "minMax")
+                    end = time.perf_counter()
+                    elapsedTime += end - start
+                    movesDurations.append(f"{elapsedTime:.5f}")
+                    movesDurations[-1] += ' sec'
+                    algorithmMovesMade += 1
+
+                    print(f"Average Move Duration: {elapsedTime/algorithmMovesMade:.5f} sec")
+                    print("Moves durations: ", str(movesDurations).replace("'", "")[1:-1])
+                    print()
+
+                    movesDurations[-1] = movesDurations[-1].split(' ')[0]
                     cardToPlayName = list(move.keys())[0]
                     cardToPlay = game.getCardByName(cardToPlayName)
                     game.movePawn(move[cardToPlayName][0][::-1], move[cardToPlayName][1][::-1], cardToPlayName)
@@ -135,7 +149,7 @@ def engine(p1Type=0, p2Type=0) -> None:
 
                 #game.undoMove()
                 #cardRarity(game.cardsInGame)
-            
+                validMoves = game.getPlayerValidMoves(player)
                 cardToPlay = None
                 turnFinished = False
                 game.getPlayerValidMoves(game.players[game.activePlayerIndex])
