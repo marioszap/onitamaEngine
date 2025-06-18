@@ -228,7 +228,7 @@ def negaMax(gameState: GameState, depth: int, turnSign: int, alpha: int, beta: i
                     if maxScore > alpha:
                         alpha = maxScore
                     if beta <= alpha:
-                        break
+                        return maxScore
 
     return maxScore
 

@@ -119,18 +119,19 @@ def engine(p1Type=0, p2Type=0) -> None:
                         elapsedTime = 0
                         movesDurations = []
                         depth = 5
+                        algorithmName = "negaMax"
                         print()
                         print(f"For depth {depth}:")
                     start = time.perf_counter()
-                    move: dict = findNextMove(game, depth, "minMax")
+                    move: dict = findNextMove(game, depth, algorithmName)
                     end = time.perf_counter()
                     elapsedTime += end - start
                     movesDurations.append(f"{elapsedTime:.5f}")
                     movesDurations[-1] += ' sec'
                     algorithmMovesMade += 1
 
-                    print(f"Average Move Duration: {elapsedTime/algorithmMovesMade:.5f} sec")
-                    print("Moves durations: ", str(movesDurations).replace("'", "")[1:-1])
+                    print(f"\tAverage Move Duration: {elapsedTime/algorithmMovesMade:.5f} sec")
+                    print("\tMoves durations: ", str(movesDurations).replace("'", "")[1:-1])
                     print()
 
                     movesDurations[-1] = movesDurations[-1].split(' ')[0]
