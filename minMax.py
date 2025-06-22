@@ -4,9 +4,13 @@ from engine import *
 import numpy as np
 import math
 from itertools import islice
-import pprint
+from pprint import pprint
 import random
 
+global transpositionTable
+transpositionTable = {}
+global zobristHashesFound
+zobristHashesFound = 0
 
 def toAbsOne(index) -> int:
     return int(np.sign([index-0.5])) #if pIdx = 1 => sign(0.5) = 1, if pIdx = 0 => sign(-0.5) = -1
@@ -59,10 +63,8 @@ class ZobristHashing():
             self.cardHashes[card.name] = random.getrandbits(64)
 
         for player in gameState.players:
-            for card in player.cards:
+            for card in gameState.cardsInGame:
                 self.cardOwnerShip[player.name][card.name] = self.cardHashes[card.name] ^ self.playerHashes[player.name]
-
-        self.TranspositionTable = {}
 
     def generateKey(self, gameState: GameState):
         key = 0
@@ -71,7 +73,7 @@ class ZobristHashing():
 
         for player in gameState.players:
             for card in player.cards:
-                key ^= self.cardHashes[player.name][card.name]
+                key ^= self.cardOwnerShip[player.name][card.name]
         
         for row in range(len(board)):
             for col in range(len(board[row])):
@@ -82,6 +84,45 @@ class ZobristHashing():
         return key
 
 
+def reorderMoves(gameState: GameState, validMoves: dict) -> dict:
+    movesWithScores = {}
+    cardCounter = {}
+    #pprint(validMoves)
+    for cardName in validMoves:
+        cardCounter[cardName] = 1
+    
+    board = gameState.board
+    player = gameState.players[gameState.activePlayerIndex]
+    opponentsThrone = gameState.p2Throne if player.name == 'p1' else gameState.p1Throne
+
+    for cardName in validMoves:
+        for startCoord in validMoves[cardName]:
+            for endCoords in validMoves[cardName][startCoord]:
+                startCoords = ast.literal_eval(startCoord)
+                gameState.cardOut = player.sendCard(gameState.getCardByName(cardName), gameState.cardOut)
+                gameState.movePawn(startCoords[::-1], endCoords[::-1], cardName)
+                newValidMoves = gameState.getPlayerValidMoves(player)
+                gameState.undoMove()
+
+                score = 0
+                for newCardName in newValidMoves:
+                    score += len(newValidMoves[newCardName])
+                    for newStartCoords in newValidMoves[newCardName]:
+                        for newEndCoords in newValidMoves[newCardName][newStartCoords]:
+                            if len(board[newEndCoords[1]][newEndCoords[0]]) == 3:
+                                score += 2
+                                if board[newEndCoords[1]][newEndCoords[0]][2] == 'M':
+                                    score += 10
+                            if newEndCoords[::-1] == opponentsThrone:
+                                score += 1000
+                movesWithScores[cardName + '_' + str(cardCounter[cardName])] = {'move': {startCoord: endCoords}, 'score': score}
+                cardCounter[cardName] += 1
+
+    sortedMovesWithScores = dict(sorted(movesWithScores.items(), key=lambda item: item[1]['score'], reverse=True))
+    #print(sortedMovesWithScores)
+    strippedSortedMoves = { k: {move_key: [move_val]} for k, v in sortedMovesWithScores.items() for move_key, move_val in v['move'].items() }
+    #print(strippedSortedMoves)
+    return strippedSortedMoves
 
 
 def evaluate(gameState: GameState): #move: [[startingX, startingY], [endingX, endingY]]
@@ -116,13 +157,20 @@ def evaluate(gameState: GameState):
     return score
 
 
-def findNextMove(gameState: GameState, MAX_DEPTH: int, algorithm: str = 'minMax', alpha_beta: bool = True):
+def findNextMove(gameState: GameState, MAX_DEPTH: int, zobrist: ZobristHashing, algorithm: str = 'negaMax', ordering: bool = True, alpha_beta: bool = True):
     global nextMove
-    if algorithm == "minMax":
-        minmax(gameState, MAX_DEPTH, -math.inf * alpha_beta, math.inf * alpha_beta, MAX_DEPTH)
-    elif algorithm == "negaMax":
-        turnSign = toAbsOne(gameState.activePlayerIndex)
-        negaMax(gameState, MAX_DEPTH, turnSign, -math.inf * alpha_beta, math.inf * alpha_beta, MAX_DEPTH)
+    if not zobrist is None: #Using transposition tables
+        
+        if algorithm == "negaMax":
+            turnSign = toAbsOne(gameState.activePlayerIndex)
+            negaMaxZobrist(gameState, MAX_DEPTH, turnSign, -math.inf * alpha_beta, math.inf * alpha_beta, zobrist, MAX_DEPTH, ordering)
+    
+    else:
+        if algorithm == "minMax":
+            minmax(gameState, MAX_DEPTH, -math.inf * alpha_beta, math.inf * alpha_beta, MAX_DEPTH)
+        elif algorithm == "negaMax":
+            turnSign = toAbsOne(gameState.activePlayerIndex)
+            negaMax(gameState, MAX_DEPTH, turnSign, -math.inf * alpha_beta, math.inf * alpha_beta, MAX_DEPTH)
     return nextMove
 
 
@@ -136,7 +184,6 @@ def minmax(gameState: GameState, depth: int, alpha: int, beta: int, MAX_DEPTH: i
     
     player = gameState.players[gameState.activePlayerIndex]
     validMoves = gameState.getPlayerValidMoves(player)
-
 
     if gameState.activePlayerIndex == 1: #max
 
@@ -200,7 +247,6 @@ def negaMax(gameState: GameState, depth: int, turnSign: int, alpha: int, beta: i
     global nextMove
 
     player = gameState.players[gameState.activePlayerIndex]
-    opponent = gameState.players[(gameState.activePlayerIndex + 1) % 2]
     validMoves = gameState.getPlayerValidMoves(player)
 
     if validMoves == 'Mate':
@@ -209,12 +255,12 @@ def negaMax(gameState: GameState, depth: int, turnSign: int, alpha: int, beta: i
     maxScore = -1000
 
     for cardName in validMoves:
-        card = gameState.getCardByName(cardName)
+        card = gameState.getCardByName(cardName.split("_")[0])
         
         for move in validMoves[cardName]:
             startCoords = ast.literal_eval(move)
             for endCoords in validMoves[cardName][move]:
-                gameState.movePawn(startCoords[::-1], endCoords[::-1], cardName)
+                gameState.movePawn(startCoords[::-1], endCoords[::-1], cardName.split("_")[0])
                 gameState.cardOut = player.sendCard(card, gameState.cardOut)
 
                 score = -negaMax(gameState, depth - 1, -turnSign, -beta, -alpha)
@@ -232,9 +278,69 @@ def negaMax(gameState: GameState, depth: int, turnSign: int, alpha: int, beta: i
 
     return maxScore
 
-"""if __name__ == '__main__':
 
-    ch1 = node(1, 1)
-    ch2 = node(1, -2)
-    p = node(-1, 0, [ch1, ch2])
-    p.minmax(1, -math.inf, math.inf)"""
+def negaMaxZobrist(gameState: GameState, depth: int, turnSign: int, alpha: int, beta: int, zobrist: ZobristHashing, MAX_DEPTH: int = None, moveOrdering = True,  _state={'last': None}) -> int:
+    if depth == 0:
+        return turnSign * evaluate(gameState)
+    
+    global transpositionTable
+    global nextMove
+    global zobristHashesFound
+
+    currentHash = zobrist.generateKey(gameState)
+    
+    if currentHash in transpositionTable:
+        entry = transpositionTable[currentHash]
+        zobristHashesFound += 1
+        if entry['depth'] >= depth:
+            return entry['score']
+
+
+    if MAX_DEPTH is None:
+        MAX_DEPTH = _state['last']
+    
+
+    player = gameState.players[gameState.activePlayerIndex]
+    validMoves = gameState.getPlayerValidMoves(player)
+    if validMoves == 'Mate':
+        return -1000
+
+    if moveOrdering and not isinstance(validMoves, str):
+        validMoves = reorderMoves(gameState, validMoves)
+
+    maxScore = -1000
+
+    for cardName in validMoves:
+        card = gameState.getCardByName(cardName.split("_")[0])
+        
+        for move in validMoves[cardName]:
+            startCoords = ast.literal_eval(move)
+            for endCoords in validMoves[cardName][move]:
+                gameState.movePawn(startCoords[::-1], endCoords[::-1], cardName.split("_")[0])
+                gameState.cardOut = player.sendCard(card, gameState.cardOut)
+
+                score = -negaMaxZobrist(gameState, depth - 1, -turnSign, -beta, -alpha, zobrist)
+                gameState.undoMove()
+
+                if score >= maxScore:
+                    maxScore = score
+                    
+                    if depth == MAX_DEPTH:
+                        nextMove = {cardName.split("_")[0]: [startCoords, endCoords]}
+                
+                if not math.isnan(alpha):        
+                    if maxScore > alpha:
+                        alpha = maxScore
+                    if beta <= alpha:
+                        transpositionTable[currentHash] = {
+                            'score': maxScore,
+                            'depth': depth,
+                        }
+                        return maxScore
+    
+    transpositionTable[currentHash] = {
+        'score': maxScore,
+        'depth': depth,
+    }
+
+    return maxScore

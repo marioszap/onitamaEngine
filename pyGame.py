@@ -7,12 +7,15 @@ from minMax import *
 import random
 import sys
 import time
+from UserInterface import jsonToReturn, runSetupWindow
 
 MAX_FPS = 10
 IMAGES = {}
 cardToPlay = None
+print(jsonToReturn)
 
 def initGame(pTypes) -> GameState:
+
     cardsInGame = loadCards()
     game = GameState(n, cardsInGame)
     game.activePlayerIndex = game.firstPlayerIdx
@@ -57,6 +60,8 @@ def engine(p1Type=0, p2Type=0) -> None:
 
 
     pTypes = [int(p1Type), int(p2Type)]
+    
+    print("After runSetupWindow()")
     game = initGame(pTypes)
     #root = node(game, True)
     pygame.init()
@@ -118,15 +123,16 @@ def engine(p1Type=0, p2Type=0) -> None:
                     if(algorithmMovesMade == 0):
                         elapsedTime = 0
                         movesDurations = []
-                        depth = 5
+                        depth = 7
                         algorithmName = "negaMax"
+                        zobrist = ZobristHashing(game)
                         print()
                         print(f"For depth {depth}:")
                     start = time.perf_counter()
-                    move: dict = findNextMove(game, depth, algorithmName)
+                    move: dict = findNextMove(game, depth, zobrist, algorithmName)
                     end = time.perf_counter()
                     elapsedTime += end - start
-                    movesDurations.append(f"{elapsedTime:.5f}")
+                    movesDurations.append(f"{end - start:.5f}")
                     movesDurations[-1] += ' sec'
                     algorithmMovesMade += 1
 
@@ -153,7 +159,7 @@ def engine(p1Type=0, p2Type=0) -> None:
                 validMoves = game.getPlayerValidMoves(player)
                 cardToPlay = None
                 turnFinished = False
-                game.getPlayerValidMoves(game.players[game.activePlayerIndex])
+                #game.getPlayerValidMoves(game.players[game.activePlayerIndex])
 
 
         clock.tick(MAX_FPS)
@@ -161,6 +167,8 @@ def engine(p1Type=0, p2Type=0) -> None:
 
 
 if __name__ == "__main__":
+    runSetupWindow()
+
     typesOfPlayers = sys.argv[1:]
     if len(typesOfPlayers) <= 2:
         engine(*typesOfPlayers)
