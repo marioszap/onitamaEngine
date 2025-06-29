@@ -147,6 +147,7 @@ class Player():
     def sendCard(self, card, cardOut: Card, p1OutCoord=0, p2OutCoord=0):
         #stW = (SCREEN_WIDTH-BOARD_HEIGHT)/2, stH = (SCREEN_HEIGHT-BOARD_HEIGHT)/2)
         coords = [p1OutCoord, p2OutCoord]
+        #print('cardOut.stPoint[0]: ', cardOut.stPoint[0], 'BOARD_HEIGHT', BOARD_HEIGHT)
         if cardOut.stPoint[0] >= BOARD_HEIGHT:
             cardOutStPoint = [((SCREEN_WIDTH-BOARD_HEIGHT)/2-CARD_HEIGHT+4*smallOffset)/2, (SCREEN_WIDTH-BOARD_HEIGHT)/2 + SQ_SIZE/2 + smallOffset]
         else:
@@ -204,17 +205,36 @@ class GameState():
         self.stW = stW
         self.stH = stH
         self.players = [Player] * 2
-        for i in range(len(self.players)):
-            self.players[i] = Player(1-i, cardsInGame, f'p{i+1}', colors[i])
+        if not 'p1' in cardsInGame:
+            for i in range(len(self.players)):
+                print('i: ', i)
+                self.players[i] = Player(1-i, cardsInGame, f'p{i+1}', colors[i])
+        else:
+            for i in range(len(self.players)):
+                print('i: ', i)
+                print('len(self.players): ',len(self.players))
+                print('cardsInGame[', f'p{i+1}',']: ', cardsInGame[f'p{i+1}'])
+                self.players[i] = Player(1-i, cardsInGame[f'p{i+1}'], f'p{i+1}', colors[i])
+        
         self.firstPlayerIdx = random.randint(0,1)
         self.firstPlayer = self.players[self.firstPlayerIdx]
         self.endMessage = None
         self.activePlayerIndex = None
-        for el in cardsInGame:
+        if not 'cardOut' in cardsInGame:
+            for el in cardsInGame:
+                if self.firstPlayer.userView:
+                    self.cardOut = Card(el, cardsInGame[el], [(self.stW-CARD_HEIGHT+4*smallOffset)/2, self.stW + SQ_SIZE/2 + smallOffset])            
+                else:
+                    self.cardOut = Card(el, cardsInGame[el], [(self.stW-CARD_HEIGHT+4*smallOffset)/2 + BOARD_WIDTH + 2*bigOffset + CARD_HEIGHT,
+                                                            self.stW + BOARD_HEIGHT - SQ_SIZE/2 - 2*smallOffset- CARD_LENGTH + smallOffset])
+                    self.cardOut.mirrorCoord(0)
+                    self.cardOut.mirrorCoord(1)
+        else:
+            cardOutName = list(cardsInGame['cardOut'].keys())[0]
             if self.firstPlayer.userView:
-                self.cardOut = Card(el, cardsInGame[el], [(self.stW-CARD_HEIGHT+4*smallOffset)/2, self.stW + SQ_SIZE/2 + smallOffset])            
+                    self.cardOut = Card(cardOutName, cardsInGame['cardOut'][cardOutName], [(self.stW-CARD_HEIGHT+4*smallOffset)/2, self.stW + SQ_SIZE/2 + smallOffset])            
             else:
-                self.cardOut = Card(el, cardsInGame[el], [(self.stW-CARD_HEIGHT+4*smallOffset)/2 + BOARD_WIDTH + 2*bigOffset + CARD_HEIGHT,
+                self.cardOut = Card(cardOutName, cardsInGame['cardOut'][cardOutName], [(self.stW-CARD_HEIGHT+4*smallOffset)/2 + BOARD_WIDTH + 2*bigOffset + CARD_HEIGHT,
                                                         self.stW + BOARD_HEIGHT - SQ_SIZE/2 - 2*smallOffset- CARD_LENGTH + smallOffset])
                 self.cardOut.mirrorCoord(0)
                 self.cardOut.mirrorCoord(1)
@@ -355,7 +375,7 @@ class GameState():
         self.players[self.activePlayerIndex].cards[cardIndex].active = True
         self.cardOut.active = False
 
-        if self.firstPlayer.userView:
+        if self.players[self.activePlayerIndex].userView:
             self.cardOut.stPoint = [(self.stW-CARD_HEIGHT+4*smallOffset)/2, self.stW + SQ_SIZE/2 + smallOffset]      
         else:
             self.cardOut.stPoint = [(self.stW-CARD_HEIGHT+4*smallOffset)/2 + BOARD_WIDTH + 2*bigOffset + CARD_HEIGHT,

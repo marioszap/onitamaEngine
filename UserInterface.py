@@ -67,7 +67,7 @@ def runSetupWindow():
 
 
     def p1SelectType(e):
-        global depthLbl, depthComboBox, alphaBetaLbl, checkAlphaBeta, tTableLbl, checkTranspositionTable
+        global depthLbl, depthComboBox, alphaBetaLbl, checkAlphaBeta, tTableLbl, checkTranspositionTable, checkMoveOrdering, moveOrderingLbL
         if not p1ComboBox.get() == 'Human':
             jsonToReturn['p1_type'] = p1ComboBox.get()
 
@@ -85,36 +85,50 @@ def runSetupWindow():
                     jsonToReturn['p1_transpositionTbale'] = True
                 else:
                     jsonToReturn['p1_transpositionTbale'] = False
+            
+            def setMoveOrdering():
+                if moveOrdering.get() == 1:
+                    jsonToReturn['p1_moveOrdering'] = True
+                else:
+                    jsonToReturn['p1_moveOrdering'] = False
 
             depthLbl = Label(window, text='Depth', bg = window.cget('bg'), fg='#b07c38', font=('Impact'))
-            depthLbl.place(y=370, x=rightTenth_x + 370)
+            depthLbl.place(y=370, x=rightTenth_x + 350)
             depthComboBox = ttk.Combobox(window, value=list(range(1, 10)), font=('Impact'), background=window.cget('bg'))
             depthComboBox.bind('<<ComboboxSelected>>', setDepth)
 
             depthComboBox.current(0)
-            depthComboBox.place(x=rightTenth_x + 300, y=400)
+            depthComboBox.place(x=rightTenth_x + 280, y=400)
             alphaBetaLbl = Label(window, text='Alpha/Beta', bg = window.cget('bg'), fg='#b07c38', font=('Impact'))
-            alphaBetaLbl.place(y=370, x=rightTenth_x + 550)
+            alphaBetaLbl.place(y=370, x=rightTenth_x + 510)
             alphaBeta = IntVar(value=0)
             jsonToReturn['p1_alpthaBeta'] = False
 
             checkAlphaBeta = Checkbutton(window, variable=alphaBeta, onvalue=1, offvalue=0, bg=window.cget('bg'), command=setAlphaBeta, activebackground='#b07c38')
-            checkAlphaBeta.place(y=400, x =rightTenth_x + 570)
+            checkAlphaBeta.place(y=400, x =rightTenth_x + 540)
             print('alphaBeta: ', alphaBeta)
+            moveOrderingLbL = Label(window, text='Move Ordering', bg = window.cget('bg'), fg='#b07c38', font='Impact')
+            moveOrderingLbL.place(y=370, x=rightTenth_x + 620)
+            moveOrdering = IntVar(value=0)
+            checkMoveOrdering = Checkbutton(window, variable=moveOrdering, onvalue=1, offvalue=0, bg=window.cget('bg'), command=setMoveOrdering, activebackground='#b07c38')
+            checkMoveOrdering.place(y=400, x =rightTenth_x + 660)
             tTableLbl = Label(window, text='Tranasposition Table', bg = window.cget('bg'), fg='#b07c38', font='Impact')
-            tTableLbl.place(y=370, x=rightTenth_x + 660)
+            tTableLbl.place(y=370, x=rightTenth_x + 740)
             tTable = IntVar(value=0)
             jsonToReturn['p1_transpositionTbale'] = False
             checkTranspositionTable = Checkbutton(window, variable=tTable, onvalue=1, offvalue=0, bg=window.cget('bg'), command=setTTable, activebackground='#b07c38')
-            checkTranspositionTable.place(y=400, x =rightTenth_x + 720)
+            checkTranspositionTable.place(y=400, x =rightTenth_x + 800)
 
         else:
             jsonToReturn['p1_type'] = p1ComboBox.get()
+            
             try:
                 depthLbl.place_forget()
                 depthComboBox.place_forget()
                 alphaBetaLbl.place_forget()
                 checkAlphaBeta.place_forget()
+                checkMoveOrdering.place_forget()
+                moveOrderingLbL.place_forget()
                 tTableLbl.place_forget()
                 checkTranspositionTable.place_forget()
             except:
@@ -122,7 +136,7 @@ def runSetupWindow():
 
 
     def p2SelectType(e):
-        global depthLbl2, depthComboBox2, alphaBetaLbl2, checkAlphaBeta2, tTableLbl2, checkTranspositionTable2
+        global depthLbl2, depthComboBox2, alphaBetaLbl2, checkAlphaBeta2, tTableLbl2, checkTranspositionTable2, checkMoveOrdering2, moveOrderingLbL2
         if not p2ComboBox.get() == 'Human':
             jsonToReturn['p2_type'] = p2ComboBox.get()
             def setAlphaBeta():
@@ -140,26 +154,37 @@ def runSetupWindow():
                 else:
                     jsonToReturn['p2_transpositionTbale'] = False
 
+            def setMoveOrdering():
+                if moveOrdering2.get() == 1:
+                    jsonToReturn['p2_moveOrdering'] = True
+                else:
+                    jsonToReturn['p2_moveOrdering'] = False
+
             depthLbl2 = Label(window, text='Depth', bg = window.cget('bg'), fg='#b07c38', font=('Impact'))
-            depthLbl2.place(y=370, x=rightTenth_x + 370)
+            depthLbl2.place(y=370, x=rightTenth_x + 350)
             depthComboBox2 = ttk.Combobox(window, value=list(range(1, 10)), font=('Impact'), background=window.cget('bg'))
             depthComboBox2.bind('<<ComboboxSelected>>', setDepth)
 
             depthComboBox2.current(0)
-            depthComboBox2.place(x=rightTenth_x + 300, y=460)
+            depthComboBox2.place(x=rightTenth_x + 280, y=460)
             alphaBetaLbl2 = Label(window, text='Alpha/Beta', bg = window.cget('bg'), fg='#b07c38', font=('Impact'))
-            alphaBetaLbl2.place(y=370, x=rightTenth_x + 550)
+            alphaBetaLbl2.place(y=370, x=rightTenth_x + 510)
             alphaBeta2 = IntVar(value=0)
             jsonToReturn['p2_alpthaBeta'] = False
             checkAlphaBeta2 = Checkbutton(window, variable=alphaBeta2, onvalue=1, offvalue=0, bg=window.cget('bg'), command=setAlphaBeta, activebackground='#b07c38')
-            checkAlphaBeta2.place(y=460, x =rightTenth_x + 570)
+            checkAlphaBeta2.place(y=460, x =rightTenth_x + 540)
 
+            moveOrderingLbL2 = Label(window, text='Move Ordering', bg = window.cget('bg'), fg='#b07c38', font='Impact')
+            moveOrderingLbL2.place(y=370, x=rightTenth_x + 620)
+            moveOrdering2 = IntVar(value=0)
+            checkMoveOrdering2 = Checkbutton(window, variable=moveOrdering2, onvalue=1, offvalue=0, bg=window.cget('bg'), command=setMoveOrdering, activebackground='#b07c38')
+            checkMoveOrdering2.place(y=460, x =rightTenth_x + 660)
             tTableLbl2 = Label(window, text='Tranasposition Table', bg = window.cget('bg'), fg='#b07c38', font='Impact')
-            tTableLbl2.place(y=370, x=rightTenth_x + 660)
+            tTableLbl2.place(y=370, x=rightTenth_x + 740)
             tTable2 = IntVar(value=0)
             jsonToReturn['p2_transpositionTbale'] = False
             checkTranspositionTable2 = Checkbutton(window, variable=tTable2, onvalue=1, offvalue=0, bg=window.cget('bg'), command=setTTable, activebackground='#b07c38')
-            checkTranspositionTable2.place(y=460, x =rightTenth_x + 720)
+            checkTranspositionTable2.place(y=460, x =rightTenth_x + 800)
 
         else:
             jsonToReturn['p2_type'] = p1ComboBox.get()
@@ -316,3 +341,4 @@ def runSetupWindow():
 
     startGameButton = Button(window, text='Start Game', height=2, width=25, bg='purple', command = window.destroy, activebackground= '#350d61', fg='white', font=('Impact',17, 'bold')).place(y = 880, x = 330)
     window.mainloop()
+    return jsonToReturn

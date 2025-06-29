@@ -7,30 +7,58 @@ from minMax import *
 import random
 import sys
 import time
-from UserInterface import jsonToReturn, runSetupWindow
+from UserInterface import runSetupWindow
 
 MAX_FPS = 10
 IMAGES = {}
 cardToPlay = None
-print(jsonToReturn)
 
-def initGame(pTypes) -> GameState:
+def initGame(pTypes, json=None) -> GameState:
 
-    cardsInGame = loadCards()
-    game = GameState(n, cardsInGame)
-    game.activePlayerIndex = game.firstPlayerIdx
-    game.playerTurn(pTypes)
+    if json is None:
+        cardsInGame = loadCards()
+        game = GameState(n, cardsInGame)
+        game.activePlayerIndex = game.firstPlayerIdx
+        game.playerTurn(pTypes)
+    else:
+        print(pTypes)
+        if 'randomCards' in json and json['randomCards']:
+            cardsInGame = loadCards()
+        else:
+            print({'p1': json['p1'], 'p2': json['p2'], 'cardOut': json['cardOut']})
+            cardsInGame = loadCards({'p1': json['p1'], 'p2': json['p2'], 'cardOut': json['cardOut']})
+        game = GameState(n, cardsInGame)
+        
+        if json['playsFirst'] == 'p1':
+            game.activePlayerIndex = game.firstPlayerIdx = 0
+        elif json['playsFirst'] == 'p2':
+            game.activePlayerIndex = game.firstPlayerIdx = 1
+        else:
+            game.activePlayerIndex = game.firstPlayerIdx
+        game.playerTurn(pTypes)
+
     return game
 
-def loadCards() -> dict[str]:
-    allCards = open('cardsMoves.json')
-    allCards = json.load(allCards)
-    cardsNames = [name for name in allCards]
-    cardsNames = random.sample(cardsNames, 5)
-    cardsInGame = {}
-    for name in cardsNames:
-        cardsInGame[name] = allCards[name]
-    print('cardsInGame: ', cardsInGame)
+
+def loadCards(cardsPerPlayer = None) -> dict[str]:
+    if cardsPerPlayer is None:
+        allCards = open('cardsMoves.json')
+        allCards = json.load(allCards)
+        cardsNames = [name for name in allCards]
+        cardsNames = random.sample(cardsNames, 5)
+        cardsInGame = {}
+        for name in cardsNames:
+            cardsInGame[name] = allCards[name]
+        print('cardsInGame: ', cardsInGame)
+    else:
+        allCards = open('cardsMoves.json')
+        allCards = json.load(allCards)
+        cardsInGame = {}
+        for playerName in cardsPerPlayer:
+            cardsInGame[playerName] = {}
+            for cardName in cardsPerPlayer[playerName]:
+                cardsInGame[playerName][cardName] = allCards[cardName]
+        print('cardsInGame: ', cardsInGame)
     return cardsInGame
 
 
@@ -56,13 +84,14 @@ def drawPawns(screen, board, stW, stH) -> None:
                 screen.blit(IMAGES[piece], pygame.Rect(c*SQ_SIZE+stW, r*SQ_SIZE+stH, SQ_SIZE+stW, SQ_SIZE+stH))
 
 
-def engine(p1Type=0, p2Type=0) -> None:
-
+def engine(p1Type=0, p2Type=0, jsonGameSetup = None) -> None:
 
     pTypes = [int(p1Type), int(p2Type)]
-    
-    print("After runSetupWindow()")
-    game = initGame(pTypes)
+    if jsonGameSetup is not None:
+        pTypes = [1 if 'p1_type' in jsonGameSetup else 0, 1 if 'p2_type' in jsonGameSetup else 0]
+
+    game = initGame(pTypes, jsonGameSetup)
+
     #root = node(game, True)
     pygame.init()
 
@@ -92,13 +121,13 @@ def engine(p1Type=0, p2Type=0) -> None:
                 running = False
         pygame.display.set_caption("Onitama engine: "+game.players[game.activePlayerIndex].name+ "'s turn")
 
-        
         drawBackground(screen)
         game.drawBoard(screen)
 
         player = game.players[game.activePlayerIndex]
         inactivePlayer = game.players[(game.activePlayerIndex + 1) % 2]
         if game.endMessage or validMoves == 'Mate':
+            print('Mate')
             game.drawEndScreen(game.endMessage)
             for e in pygame.event.get():
                 if pygame.key.get_pressed():
@@ -119,17 +148,49 @@ def engine(p1Type=0, p2Type=0) -> None:
                 if int(pTypes[game.activePlayerIndex]) == 0:
                     turnFinished = game.highlightSquares(screen, cardToPlay, player.name)
 
+                elif int(pTypes[game.activePlayerIndex]) == 1 and jsonGameSetup is not None:
+                    if(algorithmMovesMade == 0):
+                        elapsedTime = 0
+                        movesDurations = []
+                        depth = int(jsonGameSetup[game.players[game.activePlayerIndex].name+'_depth'])
+                        algorithmName = jsonGameSetup[game.players[game.activePlayerIndex].name+'_type']
+                        if jsonGameSetup[game.players[game.activePlayerIndex].name+'_transpositionTbale']:
+                            zobrist = ZobristHashing(game)
+                        else:
+                            zobrist = None
+                        moveOrdering: bool = jsonGameSetup[game.players[game.activePlayerIndex].name+'_moveOrdering']
+                        print()
+                        print(f"For depth {depth}, algorithmName: {algorithmName}, zobrist: {zobrist}, alpha_beta: {bool(jsonGameSetup[game.players[game.activePlayerIndex].name+'_alpthaBeta'])}")
+                        print(type(algorithmName))
+                    start = time.perf_counter()
+                    move: dict = findNextMove(game, depth, zobrist, algorithmName, ordering=False, alpha_beta=bool(jsonGameSetup[game.players[game.activePlayerIndex].name+'_alpthaBeta']))
+                    end = time.perf_counter()
+                    elapsedTime += end - start
+                    movesDurations.append(f"{end - start:.5f}")
+                    movesDurations[-1] += ' sec'
+                    algorithmMovesMade += 1
+
+                    print(f"\tAverage Move Duration: {elapsedTime/algorithmMovesMade:.5f} sec")
+                    print("\tMoves durations: ", str(movesDurations).replace("'", "")[1:-1])
+                    print()
+
+                    movesDurations[-1] = movesDurations[-1].split(' ')[0]
+                    cardToPlayName = list(move.keys())[0]
+                    cardToPlay = game.getCardByName(cardToPlayName)
+                    game.movePawn(move[cardToPlayName][0][::-1], move[cardToPlayName][1][::-1], cardToPlayName)
+                    turnFinished = True
+
                 elif int(pTypes[game.activePlayerIndex]) == 1:
                     if(algorithmMovesMade == 0):
                         elapsedTime = 0
                         movesDurations = []
-                        depth = 7
-                        algorithmName = "negaMax"
+                        depth = 6
+                        algorithmName = 'NegaMax'
                         zobrist = ZobristHashing(game)
                         print()
                         print(f"For depth {depth}:")
                     start = time.perf_counter()
-                    move: dict = findNextMove(game, depth, zobrist, algorithmName)
+                    move: dict = findNextMove(game, depth, None, algorithmName, ordering=False, alpha_beta=True)
                     end = time.perf_counter()
                     elapsedTime += end - start
                     movesDurations.append(f"{end - start:.5f}")
@@ -161,14 +222,17 @@ def engine(p1Type=0, p2Type=0) -> None:
                 turnFinished = False
                 #game.getPlayerValidMoves(game.players[game.activePlayerIndex])
 
-
         clock.tick(MAX_FPS)
         pygame.display.flip()
 
 
 if __name__ == "__main__":
-    runSetupWindow()
+    terminalArgs = sys.argv[1:]
+    if len(terminalArgs) == 0:
+        jsonToSetup = runSetupWindow()
+        print(jsonToSetup)
+        engine(jsonGameSetup = jsonToSetup)
 
-    typesOfPlayers = sys.argv[1:]
-    if len(typesOfPlayers) <= 2:
-        engine(*typesOfPlayers)
+        print(jsonToSetup)
+    elif len(terminalArgs) <= 2:
+        engine(*terminalArgs)
