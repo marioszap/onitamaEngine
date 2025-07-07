@@ -126,8 +126,8 @@ def engine(p1Type=0, p2Type=0, jsonGameSetup = None) -> None:
 
         player = game.players[game.activePlayerIndex]
         inactivePlayer = game.players[(game.activePlayerIndex + 1) % 2]
+
         if game.endMessage or validMoves == 'Mate':
-            print('Mate')
             game.drawEndScreen(game.endMessage)
             for e in pygame.event.get():
                 if pygame.key.get_pressed():
@@ -184,13 +184,13 @@ def engine(p1Type=0, p2Type=0, jsonGameSetup = None) -> None:
                     if(algorithmMovesMade == 0):
                         elapsedTime = 0
                         movesDurations = []
-                        depth = 6
-                        algorithmName = 'NegaMax'
+                        depth = 5
+                        algorithmName = 'MinMax'
                         zobrist = ZobristHashing(game)
                         print()
                         print(f"For depth {depth}:")
                     start = time.perf_counter()
-                    move: dict = findNextMove(game, depth, None, algorithmName, ordering=False, alpha_beta=True)
+                    move: dict = findNextMove(game, depth, zobrist, algorithmName, ordering=False, alpha_beta=True)
                     end = time.perf_counter()
                     elapsedTime += end - start
                     movesDurations.append(f"{end - start:.5f}")
@@ -217,7 +217,7 @@ def engine(p1Type=0, p2Type=0, jsonGameSetup = None) -> None:
 
                 #game.undoMove()
                 #cardRarity(game.cardsInGame)
-                validMoves = game.getPlayerValidMoves(player)
+                validMoves = game.getPlayerValidMoves(game.players[game.activePlayerIndex])
                 cardToPlay = None
                 turnFinished = False
                 #game.getPlayerValidMoves(game.players[game.activePlayerIndex])

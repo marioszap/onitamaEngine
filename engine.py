@@ -153,8 +153,12 @@ class Player():
         else:
             cardOutStPoint = [((SCREEN_WIDTH-BOARD_HEIGHT)/2-CARD_HEIGHT+4*smallOffset)/2 + BOARD_WIDTH + 2*bigOffset + CARD_HEIGHT,
                                 SCREEN_WIDTH/2 + BOARD_HEIGHT/2 - SQ_SIZE/2 - smallOffset - CARD_LENGTH]
-        
-        idx = self.cards.index(card)
+        try:
+            idx = self.cards.index(card)
+        except:
+            print("cards in game: ", self.cards[0].name)
+            print("card.name: ",card.name)
+            print("list: ", self.cards[0].name, ", ",self.cards[1].name)
         playedCardCoords = self.cards[idx].stPoint
 
         self.cards[idx].swapHeightWithWidth()
@@ -207,13 +211,9 @@ class GameState():
         self.players = [Player] * 2
         if not 'p1' in cardsInGame:
             for i in range(len(self.players)):
-                print('i: ', i)
                 self.players[i] = Player(1-i, cardsInGame, f'p{i+1}', colors[i])
         else:
             for i in range(len(self.players)):
-                print('i: ', i)
-                print('len(self.players): ',len(self.players))
-                print('cardsInGame[', f'p{i+1}',']: ', cardsInGame[f'p{i+1}'])
                 self.players[i] = Player(1-i, cardsInGame[f'p{i+1}'], f'p{i+1}', colors[i])
         
         self.firstPlayerIdx = random.randint(0,1)
@@ -295,10 +295,10 @@ class GameState():
             drawTransparentRect(screen, sqHighlightColor, (squareClicked[1]) * SQ_SIZE + self.stW, (squareClicked[0]) * SQ_SIZE + self.stH, SQ_SIZE, SQ_SIZE, 64)
             if self.board[squareClicked[0]][squareClicked[1]][-1] == 'M':
                 dangerousSquares = self.getPlayerValidMoves(self.players[(self.activePlayerIndex + 1) % 2], False, True)
-                
+            else:
+                dangerousSquares = []
 
             for i in range(len(card.moves)):
-                try:
                     sqToMove = [(squareClicked[1] + card.moves[i][0]), (squareClicked[0] + card.moves[i][1])]
                     sqToMoveCoords = [(squareClicked[1] + card.moves[i][0]) * SQ_SIZE + self.stW, (squareClicked[0] + card.moves[i][1]) * SQ_SIZE + self.stH]
                     if self.clickArea.collidepoint((sqToMoveCoords[0], sqToMoveCoords[1])) \
@@ -311,8 +311,7 @@ class GameState():
                             return True
                     elif sqToMove in dangerousSquares and self.board[squareClicked[0]][squareClicked[1]][:2] != self.board[sqToMove[1]][sqToMove[0]][:2]:
                         drawTransparentRect(screen, 'black', sqToMoveCoords[0], sqToMoveCoords[1], SQ_SIZE, SQ_SIZE, 64)
-                except:
-                    ...
+                
 
 
     def movePawn(self, startSquare, endSquare, cardName: str) -> None:
@@ -523,7 +522,6 @@ class GameState():
                 # print("can capture threatening piece: ",  not dangerousPawns[0] in myMovesEndsquares)
                 # print("more than one piece threatening: ", len(dangerousPawns) > 1 )
                 if not str(myMaster) in keepMoves(validMoves) and ((len(dangerousPawns) > 1 or not dangerousPawns[0] in myMovesEndsquares)):
-                    #print("Mate")
                     return "Mate"
                 else: #Master in check but its salvageable
                     #Keep only moves that save
