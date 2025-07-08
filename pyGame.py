@@ -152,18 +152,24 @@ def engine(p1Type=0, p2Type=0, jsonGameSetup = None) -> None:
                     if(algorithmMovesMade == 0):
                         elapsedTime = 0
                         movesDurations = []
-                        depth = int(jsonGameSetup[game.players[game.activePlayerIndex].name+'_depth'])
+                        try:
+                            depth = int(jsonGameSetup[game.players[game.activePlayerIndex].name+'_depth'])
+                        except: 
+                            depth = 5
                         algorithmName = jsonGameSetup[game.players[game.activePlayerIndex].name+'_type']
                         if jsonGameSetup[game.players[game.activePlayerIndex].name+'_transpositionTbale']:
                             zobrist = ZobristHashing(game)
                         else:
                             zobrist = None
-                        moveOrdering: bool = jsonGameSetup[game.players[game.activePlayerIndex].name+'_moveOrdering']
+                        try:
+                            moveOrdering: bool = jsonGameSetup[game.players[game.activePlayerIndex].name+'_moveOrdering']
+                        except:
+                            moveOrdering = False
                         print()
                         print(f"For depth {depth}, algorithmName: {algorithmName}, zobrist: {zobrist}, alpha_beta: {bool(jsonGameSetup[game.players[game.activePlayerIndex].name+'_alpthaBeta'])}")
                         print(type(algorithmName))
                     start = time.perf_counter()
-                    move: dict = findNextMove(game, depth, zobrist, algorithmName, ordering=False, alpha_beta=bool(jsonGameSetup[game.players[game.activePlayerIndex].name+'_alpthaBeta']))
+                    move: dict = findNextMove(game, depth, zobrist, algorithmName, ordering=moveOrdering, alpha_beta=bool(jsonGameSetup[game.players[game.activePlayerIndex].name+'_alpthaBeta']))
                     end = time.perf_counter()
                     elapsedTime += end - start
                     movesDurations.append(f"{end - start:.5f}")
